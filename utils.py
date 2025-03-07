@@ -49,9 +49,6 @@ def countLogicalErrors_uf_rotated(circuit: Circuit, shots: int) -> int:
             if err == 1:
                 error_dict_for_qsurface[convCoords[i]] = err
 
-        if (8.5, 7.5) in error_dict_for_qsurface.keys():
-            print("DEBUG")
-
         output = run(code, decoder, error_rates = {"p_bitflip": 0.1, "p_phaseflip": 0.1}, decode_initial=False, custom_error_dict=error_dict_for_qsurface)
         matchings = output["matchings"]
         originalMatchings = matchings
