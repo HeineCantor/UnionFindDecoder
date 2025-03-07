@@ -4,19 +4,36 @@ import numpy as np
 import sinter
 import stim
 
+CODE_TYPES = {
+    "surface_code:unrotated_memory_z" : "planar", # these are qsurface names
+    "surface_code:rotated_memory_z" : "rotated",
+    "surface_code:unrotated_memory_x" : "planar",
+    "surface_code:rotated_memory_x" : "rotated",
+}
+
+OBSERVABLE_Y_COORD = {
+    "rotated" : 1,
+    "planar" : 0
+}
+
+class UnionFindCompiledDecoder(sinter.CompiledDecoder):
+    def __init__(self, codeType : str, detector_error_model : stim.DetectorErrorModel):
+        super().__init__()
+        self.codeType = codeType
+        self.dem = detector_error_model
+        self.convCoords = init_from_dem(detector_error_model, codeType)
+
+    def decode_shots_bit_packed(self, *, bit_packed_detection_event_data: np.ndarray,) -> np.ndarray:
+        all_predictions = []
+        
+        for shot in bit_packed_detection_event_data:
+            unpacked = np.unpackbits(shot, bitorder='little')
+            prediction = predict_from_dem(sample=unpacked, codeType=self.codeType, dem=self.dem, convCoords=self.convCoords)
+            all_predictions.append(prediction)
+
+        return np.packbits(all_predictions, axis=1, bitorder='little')
+    
 class UnionFindDecoder(sinter.Decoder):
-    CODE_TYPES = {
-        "surface_code:unrotated_memory_z" : "planar", # these are qsurface names
-        "surface_code:rotated_memory_z" : "rotated",
-        "surface_code:unrotated_memory_x" : "planar",
-        "surface_code:rotated_memory_x" : "rotated",
-    }
-
-    OBSERVABLE_Y_COORD = {
-        "rotated" : 1,
-        "planar" : 0
-    }
-
     def __init__(self, codeType : str):
         super().__init__()
         self.codeType = codeType
@@ -32,8 +49,7 @@ class UnionFindDecoder(sinter.Decoder):
                          tmp_dir: pathlib.Path,
                        ) -> None:
 
-
-        self.init_from_dem(stim.DetectorErrorModel.from_file(dem_path))
+        self.convCoords, self.distance = init_from_dem(stim.DetectorErrorModel.from_file(dem_path), self.codeType)
 
         packed_detection_event_data = np.fromfile(dets_b8_in_path, dtype=np.uint8)
         packed_detection_event_data.shape = (num_shots, math.ceil(num_dets / 8))
@@ -42,76 +58,72 @@ class UnionFindDecoder(sinter.Decoder):
         all_predictions = []
         for shot in packed_detection_event_data:
             unpacked = np.unpackbits(shot, bitorder='little')
-            prediction = self.predict_from_dem(sample=unpacked)
+            prediction = predict_from_dem(sample=unpacked)
             all_predictions.append(prediction)
 
         # Write predictions.
         np.packbits(all_predictions, axis=1, bitorder='little').tofile(obs_predictions_b8_out_path)
 
     def compile_decoder_for_dem(self, *, dem: stim.DetectorErrorModel) -> 'sinter.CompiledDecoder':
-        # This will be added in v1.12 and sinter will prefer it, as it avoids the disk as a bottleneck.
-        #
-        # You have to return an object with this method:
-        #    def decode_shots_bit_packed(
-        #                self,
-        #                *,
-        #                bit_packed_detection_event_data: np.ndarray,
-        #        ) -> np.ndarray:
-        raise NotImplementedError()
+        return UnionFindCompiledDecoder(self.codeType, dem)
     
-    def init_from_dem(self, dem: stim.DetectorErrorModel) -> None:
-        self.detCoords = dem.get_detector_coordinates()
 
-        # Note: approximation. We should actually the max of all three dimensions.
-        self.distance = int(list(self.detCoords.values())[-1][-1])
+def init_from_dem(dem: stim.DetectorErrorModel, codeType: str) -> dict:
+    detCoords = dem.get_detector_coordinates()
+    convCoords = {}
 
-        self.convCoords = {}
+    if CODE_TYPES[codeType] == "rotated":
+        for i in range(len(detCoords)):
+            convCoords[i] = (detCoords[i][0] / 2 - 0.5, detCoords[i][1] / 2 - 0.5, detCoords[i][2])
+    elif CODE_TYPES[codeType] == "planar":
+        for i in range(len(detCoords)):
+            convCoords[i] = (detCoords[i][0] / 2 + 0.5, detCoords[i][1] / 2, detCoords[i][2])
 
-        if self.CODE_TYPES[self.codeType] == "rotated":
-            for i in range(len(self.detCoords)):
-                self.convCoords[i] = (self.detCoords[i][0] / 2 - 0.5, self.detCoords[i][1] / 2 - 0.5, self.detCoords[i][2])
-        elif self.CODE_TYPES[self.codeType] == "planar":
-            for i in range(len(self.detCoords)):
-                self.convCoords[i] = (self.detCoords[i][0] / 2 + 0.5, self.detCoords[i][1] / 2, self.detCoords[i][2])
+    return convCoords
 
-    def predict_from_dem(self, sample: np.ndarray) -> np.ndarray:
-        try:
-            from qsurface.main import initialize, run
-        except Exception as e:
-            if e is ImportError:
-                raise ImportError("You need to install the qsurface package to use this decoder.") 
-            else:
-                raise e
+def predict_from_dem(sample: np.ndarray, codeType : str, dem : stim.DetectorErrorModel, convCoords : dict) -> np.ndarray:
+    try:
+        from qsurface.main import initialize, run
+    except Exception as e:
+        if e is ImportError:
+            raise ImportError("You need to install the qsurface package to use this decoder.") 
+        else:
+            raise e
 
-        code, decoder = initialize((self.distance, self.distance), self.CODE_TYPES[self.codeType], "unionfind", enabled_errors=["pauli"], faulty_measurements=True, initial_states=(0,0))
+    detCoords = dem.get_detector_coordinates()
 
-        error_dict_for_qsurface = {}
-        for i, err in enumerate(sample):
-            if err == 1:
-                error_dict_for_qsurface[self.convCoords[i]] = err
+    # Note: approximation. We should actually the max of all three dimensions.
+    distance = int(list(detCoords.values())[-1][-1])
 
-        # Note: error rates are useless.
-        output = run(code, decoder, error_rates = {"p_bitflip": 0.1, "p_phaseflip": 0.1}, decode_initial=False, custom_error_dict=error_dict_for_qsurface)
-        matchings = output["matchings"]
+    code, decoder = initialize((distance, distance), CODE_TYPES[codeType], "unionfind", enabled_errors=["pauli"], faulty_measurements=True, initial_states=(0,0))
 
-        # Conversion from qSurface matching notation.
-        # Note: should be generalized. We must take only the memory measurement observables (z or x) and the convertion 
-        #       should be done with respect to the code type.
-        if self.CODE_TYPES[self.codeType] == "rotated":
-            matchings = [str(m[0]).removeprefix("ex-").removeprefix("ex|").split('|')[0] for m in matchings if "ex" in str(m[0])]
-            matchings = [(float(m.split(',')[0][1:]), float(m.split(',')[1][:-1])) for m in matchings]
-            matchings = [(int((m[0] + 0.5) * 2), int((m[1] + 0.5) * 2)) for m in matchings]
-        elif self.CODE_TYPES[self.codeType] == "planar":
-            matchings = [str(m[0]).removeprefix("ez-").removeprefix("ez|").split('|')[0] for m in matchings if "ez" in str(m[0])]
-            matchings = [(float(m.split(',')[0][1:]), float(m.split(',')[1][:-1])) for m in matchings]
-            matchings = [(int((m[0] - 0.5) * 2), int(m[1] * 2)) for m in matchings]
+    error_dict_for_qsurface = {}
+    for i, err in enumerate(sample):
+        if err == 1:
+            error_dict_for_qsurface[convCoords[i]] = err
 
-        tmpParity = 0
+    # Note: error rates are useless.
+    output = run(code, decoder, error_rates = {"p_bitflip": 0.1, "p_phaseflip": 0.1}, decode_initial=False, custom_error_dict=error_dict_for_qsurface)
+    matchings = output["matchings"]
 
-        obsYCoord = self.OBSERVABLE_Y_COORD[self.CODE_TYPES[self.codeType]]
+    # Conversion from qSurface matching notation.
+    # Note: should be generalized. We must take only the memory measurement observables (z or x) and the convertion 
+    #       should be done with respect to the code type.
+    if CODE_TYPES[codeType] == "rotated":
+        matchings = [str(m[0]).removeprefix("ex-").removeprefix("ex|").split('|')[0] for m in matchings if "ex" in str(m[0])]
+        matchings = [(float(m.split(',')[0][1:]), float(m.split(',')[1][:-1])) for m in matchings]
+        matchings = [(int((m[0] + 0.5) * 2), int((m[1] + 0.5) * 2)) for m in matchings]
+    elif CODE_TYPES[codeType] == "planar":
+        matchings = [str(m[0]).removeprefix("ez-").removeprefix("ez|").split('|')[0] for m in matchings if "ez" in str(m[0])]
+        matchings = [(float(m.split(',')[0][1:]), float(m.split(',')[1][:-1])) for m in matchings]
+        matchings = [(int((m[0] - 0.5) * 2), int(m[1] * 2)) for m in matchings]
 
-        for m in matchings:
-            if m[1] == obsYCoord:
-                tmpParity ^= 1
+    tmpParity = 0
 
-        return [tmpParity]
+    obsYCoord = OBSERVABLE_Y_COORD[CODE_TYPES[codeType]]
+
+    for m in matchings:
+        if m[1] == obsYCoord:
+            tmpParity ^= 1
+
+    return [tmpParity]
