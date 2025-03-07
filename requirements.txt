@@ -1,2 +1,11 @@
+stim~=1.14
+numpy~=1.9 # 1.9 instead of 2.0 for pymatching compatibility later
+matplotlib~=3.5.1 # for qSurface compatibility
+scipy
 matplotlib
-numpy
+svgutils
+IPython
+pymatching~=2.0
+tqdm
+sinter~=1.14
+# qSurface not included bc of custom dev version
