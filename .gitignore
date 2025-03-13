@@ -173,3 +173,4 @@ cython_debug/
 # Personal
 .qsurftest
 test
+test.py

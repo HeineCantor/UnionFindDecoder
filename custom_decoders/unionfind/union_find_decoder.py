@@ -72,6 +72,7 @@ def init_from_dem(dem: stim.DetectorErrorModel, codeType: str) -> dict:
     detCoords = dem.get_detector_coordinates()
     convCoords = {}
 
+    #  TODO: estrai metodi + astrazione con classe
     if CODE_TYPES[codeType] == "rotated":
         for i in range(len(detCoords)):
             convCoords[i] = (detCoords[i][0] / 2 - 0.5, detCoords[i][1] / 2 - 0.5, detCoords[i][2])
