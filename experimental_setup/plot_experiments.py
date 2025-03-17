@@ -2,8 +2,7 @@ import stim, sinter
 import matplotlib.pyplot as plt
 import numpy as np
 
-RESULTS_PATH = "results_onlym_3/"
-RESULTS_PATH = ""
+RESULTS_PATH = "experimental_setup/results/results_05/"
 
 def _plotAccuracyBy(stats, xAxis, yAxis, parameterName, log=True, meanAndStdDev=False):
     p = stats[0].json_metadata['p']

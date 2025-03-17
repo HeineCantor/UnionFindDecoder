@@ -1,3 +1,5 @@
+import matplotlib.pyplot as plt
+
 import experimental_setup.accuracy as accuracy
 from experimental_setup.plot_experiments import plotAccuracyByDistance, plotAccuracyByShots, plotAccuracyByRounds, plotAccuracyByVariance
 
@@ -24,10 +26,12 @@ def testAndSaveVariance():
 if __name__ == "__main__":
     #testAndSaveDistance()
     #testAndSaveShots()
-    testAndSaveRounds()
+    #testAndSaveRounds()
     #testAndSaveVariance()
 
-    plotAccuracyByDistance()
-    plotAccuracyByShots()
-    plotAccuracyByRounds()
+    #plotAccuracyByDistance()
+    #plotAccuracyByShots()
+    #plotAccuracyByRounds()
     plotAccuracyByVariance()
+
+    plt.show()
