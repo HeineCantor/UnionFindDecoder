@@ -174,3 +174,4 @@ cython_debug/
 .qsurftest
 test
 test.py
+experimental_setup/results

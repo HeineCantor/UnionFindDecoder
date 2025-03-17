@@ -3,6 +3,7 @@ from abc import ABC
 class ErrorModel(ABC):
     def __init__(self, error_rate : float = 0.01):
         self.error_rate = error_rate
+        self.name = None
 
     def getAfterResetErrorRate(self) -> float:
         raise NotImplementedError
