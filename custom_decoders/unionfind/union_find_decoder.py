@@ -17,26 +17,28 @@ OBSERVABLE_Y_COORD = {
 }
 
 class UnionFindCompiledDecoder(sinter.CompiledDecoder):
-    def __init__(self, codeType : str, detector_error_model : stim.DetectorErrorModel):
+    def __init__(self, codeType : str, detector_error_model : stim.DetectorErrorModel, rounds : int = None):
         super().__init__()
         self.codeType = codeType
         self.dem = detector_error_model
         self.convCoords = init_from_dem(detector_error_model, codeType)
+        self.rounds = rounds
 
     def decode_shots_bit_packed(self, *, bit_packed_detection_event_data: np.ndarray,) -> np.ndarray:
         all_predictions = []
         
         for shot in bit_packed_detection_event_data:
             unpacked = np.unpackbits(shot, bitorder='little')
-            prediction = predict_from_dem(sample=unpacked, codeType=self.codeType, dem=self.dem, convCoords=self.convCoords)
+            prediction = predict_from_dem(sample=unpacked, codeType=self.codeType, dem=self.dem, convCoords=self.convCoords, rounds=self.rounds)
             all_predictions.append(prediction)
 
         return np.packbits(all_predictions, axis=1, bitorder='little')
     
 class UnionFindDecoder(sinter.Decoder):
-    def __init__(self, codeType : str):
+    def __init__(self, codeType : str, rounds : int = None):
         super().__init__()
         self.codeType = codeType
+        self.rounds = rounds
 
     def decode_via_files(self,
                          *,
@@ -58,14 +60,14 @@ class UnionFindDecoder(sinter.Decoder):
         all_predictions = []
         for shot in packed_detection_event_data:
             unpacked = np.unpackbits(shot, bitorder='little')
-            prediction = predict_from_dem(sample=unpacked)
+            prediction = predict_from_dem(sample=unpacked, rounds=self.rounds)
             all_predictions.append(prediction)
 
         # Write predictions.
         np.packbits(all_predictions, axis=1, bitorder='little').tofile(obs_predictions_b8_out_path)
 
     def compile_decoder_for_dem(self, *, dem: stim.DetectorErrorModel) -> 'sinter.CompiledDecoder':
-        return UnionFindCompiledDecoder(self.codeType, dem)
+        return UnionFindCompiledDecoder(self.codeType, dem, self.rounds)
     
 
 def init_from_dem(dem: stim.DetectorErrorModel, codeType: str) -> dict:
@@ -82,7 +84,7 @@ def init_from_dem(dem: stim.DetectorErrorModel, codeType: str) -> dict:
 
     return convCoords
 
-def predict_from_dem(sample: np.ndarray, codeType : str, dem : stim.DetectorErrorModel, convCoords : dict) -> np.ndarray:
+def predict_from_dem(sample: np.ndarray, codeType : str, dem : stim.DetectorErrorModel, convCoords : dict, rounds : int = None) -> np.ndarray:
     try:
         from qsurface.main import initialize, run
     except Exception as e:
@@ -94,9 +96,15 @@ def predict_from_dem(sample: np.ndarray, codeType : str, dem : stim.DetectorErro
     detCoords = dem.get_detector_coordinates()
 
     # Note: approximation. We should actually the max of all three dimensions.
-    distance = int(list(detCoords.values())[-1][-1])
+    distance = int(list(detCoords.values())[-1][0])
+    distance = 27
 
-    code, decoder = initialize((distance, distance), CODE_TYPES[codeType], "unionfind", enabled_errors=["pauli"], faulty_measurements=True, initial_states=(0,0))
+    size = (distance, distance)
+
+    if rounds is not None:
+        size = (distance, distance, rounds)
+
+    code, decoder = initialize(size, CODE_TYPES[codeType], "unionfind", enabled_errors=["pauli"], plotting=False, faulty_measurements=True, initial_states=(0,0))
 
     error_dict_for_qsurface = {}
     for i, err in enumerate(sample):

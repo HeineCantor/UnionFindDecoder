@@ -1,81 +1,45 @@
 import numpy as np
 import pandas as pd
+import experimental_setup.config as config
 
 from itertools import product
 
-# === Subject: Codes ===
-SUBJECT_CODES = [ "unrotated", "rotated", "unrotated_xzzx", "rotated_xzzx" ]
+class DesignGenerator():
+    def generateDesign(quick: bool = False) -> pd.DataFrame:
+        doeDataframe = pd.DataFrame()
+        
+        subjects = config.SUBJECTS
+        if quick:
+            subjects = config.SUBJECTS_QUICK
 
-# === Subject: Decoders ===
-SUBJECT_DECODERS = [ "sparse_blossom", "union_find" ]
+        subjectNames = list(subjects.keys())
 
-SUBJECTS = {
-    "code" : SUBJECT_CODES,
-    "decoder" : SUBJECT_DECODERS
-}
+        # Set header
+        for subjectName in subjectNames:
+            doeDataframe[subjectName] = ""
 
-SUBJECTS_QUICK = {
-    "code" : [ "rotated" ],
-    "decoder" : [ "sparse_blossom" ]
-}
+        for factorName in config.CONSTANT_FACTORS.keys():
+            doeDataframe[factorName] = config.CONSTANT_FACTORS[factorName]
 
-# === Factors ===
+        for factorName in config.FACTORS.keys():
+            doeDataframe[factorName] = ""
 
-#   === Constant Factors ===
-CONSTANT_FACTORS = { 
-    "p" : 0.05 , 
-    "shots" : 10000, 
-    "rounds" : 100 
-}
+        for responseVariable in config.RESPONSE_VARIABLES:
+            doeDataframe[responseVariable] = ""
 
-#   === Variable Factors ===
-FACTORS = { 
-    "distance" : range(3, 31 + 1, 2),
-}
+        # Generate subject combinations
+        subjectLists = subjects.values()
+        factorLists = config.FACTORS.values()
+        combinations = list(product(*subjectLists, *factorLists))
 
-# === Response Variables ===
+        # Generate design
+        for combIndex, combination in enumerate(combinations):
+            for subjectIndex, subjectName in enumerate(subjectNames):
+                doeDataframe.at[combIndex, subjectName] = combination[subjectIndex]
+            for factorIndex, factorName in enumerate(config.FACTORS.keys()):
+                doeDataframe.at[combIndex, factorName] = combination[subjectIndex + factorIndex + 1]
 
-RESPONSE_VARIABLES = [ "error_rate", "runtime" ]
+            for constFactorName in config.CONSTANT_FACTORS.keys():
+                doeDataframe.at[combIndex, constFactorName] = config.CONSTANT_FACTORS[constFactorName]
 
-def generateDesign(quick: bool = False) -> pd.DataFrame:
-    doeDataframe = pd.DataFrame()
-    
-    subjects = SUBJECTS
-    if quick:
-        subjects = SUBJECTS_QUICK
-
-    subjectNames = list(subjects.keys())
-
-    # Set header
-    for subjectName in subjectNames:
-        doeDataframe[subjectName] = ""
-
-    for factorName in CONSTANT_FACTORS.keys():
-        doeDataframe[factorName] = CONSTANT_FACTORS[factorName]
-
-    for factorName in FACTORS.keys():
-        doeDataframe[factorName] = ""
-
-    for responseVariable in RESPONSE_VARIABLES:
-        doeDataframe[responseVariable] = ""
-
-    # Generate subject combinations
-    subjectLists = subjects.values()
-    factorLists = FACTORS.values()
-    combinations = list(product(*subjectLists, *factorLists))
-
-    # Generate design
-    for combIndex, combination in enumerate(combinations):
-        for subjectIndex, subjectName in enumerate(subjectNames):
-            doeDataframe.at[combIndex, subjectName] = combination[subjectIndex]
-        for factorIndex, factorName in enumerate(FACTORS.keys()):
-            doeDataframe.at[combIndex, factorName] = combination[subjectIndex + factorIndex + 1]
-
-        for constFactorName in CONSTANT_FACTORS.keys():
-            doeDataframe.at[combIndex, constFactorName] = CONSTANT_FACTORS[constFactorName]
-
-    return doeDataframe
-
-if __name__ == "__main__":
-    dfDesign = generateDesign()
-    dfDesign.to_csv("design.csv", index=False)
+        return doeDataframe

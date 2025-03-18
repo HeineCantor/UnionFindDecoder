@@ -2,49 +2,51 @@ import stim, sinter
 from typing import List
 import numpy as np
 
-from custom_decoders import unionfind
+from custom_decoders.unionfind.union_find_decoder import UnionFindDecoder
 from error_models.superconductive_em import SuperconductiveEM
 from error_models.only_measure_em import OnlyMeasureEM
+from error_models.willow_em import WillowEM
 
 START_DISTANCE = 3
-END_DISTANCE = 37
+END_DISTANCE = 31
 
 START_ROUNDS = 25
-END_ROUNDS = 600
+END_ROUNDS = 100
 ROUNDS_TESTS = 10
 
-START_SHOTS = 10**4
-END_SHOTS = 10**5
+START_SHOTS = 5*10**2
+END_SHOTS = 5*10**3
 SHOTS_TESTS = 10
 
-CONST_DISTANCE = 25
-CONST_SHOTS = 10**4
-CONST_ROUNDS = 100
+CONST_DISTANCE = 21
+CONST_SHOTS = 10**3
+CONST_ROUNDS = 50
 
 CONST_VARIANCE_COUNT = 100
 
 DISTANCE_RANGE = range(START_DISTANCE, END_DISTANCE + 1, 2)
-SHOTS_RANGE = np.linspace(START_SHOTS, END_SHOTS, SHOTS_TESTS, dtype=int).tolist()
-ROUNDS_RANGE = np.linspace(START_ROUNDS, END_ROUNDS, ROUNDS_TESTS, dtype=int).tolist()
+SHOTS_RANGE = np.linspace(START_SHOTS, END_SHOTS, SHOTS_TESTS, dtype=int).tolist()[::-1]
+ROUNDS_RANGE = np.linspace(START_ROUNDS, END_ROUNDS, ROUNDS_TESTS, dtype=int).tolist()[::-1]
 
 MAX_ERRORS = CONST_SHOTS // 20
 
 CORES = 14
 
-CODE_TYPE = "surface_code:rotated_memory_z"
-DECODER = "pymatching"
+noiseModel = SuperconductiveEM(0.004) # 0.4% base noise (Willow-approximated)
 
-noiseModel = SuperconductiveEM(0.004) # 0.5% base noise
-
-def execExperiment(distanceList, shotsList, roundsList):
+def execExperiment(distanceList, shotsList, roundsList, codeType, decoder):
     collected_stats = None
 
     for shots in shotsList:
         for rounds in roundsList:
+            customDecodersDict = None
+            if decoder == "union_find_decoder":
+                customDecodersDict = {"union_find_decoder": UnionFindDecoder(codeType, rounds)}
+
             task = [
                 sinter.Task(
                     circuit=stim.Circuit.generated(
-                        CODE_TYPE,
+                        codeType,
                         rounds=rounds,
                         distance=d,
                         before_round_data_depolarization=noiseModel.getBeforeRoundDataDepolarizationErrorRate(),
@@ -62,7 +64,8 @@ def execExperiment(distanceList, shotsList, roundsList):
                     tasks=task,
                     max_shots=shots,
                     max_errors=shots,
-                    decoders=[DECODER],
+                    decoders=[decoder],
+                    custom_decoders=customDecodersDict,
                     print_progress=True
                 )
 
@@ -73,20 +76,23 @@ def execExperiment(distanceList, shotsList, roundsList):
 
     return collected_stats
 
-def accuracyByDistance():
-    return execExperiment(DISTANCE_RANGE, [CONST_SHOTS], [CONST_ROUNDS])
+def accuracyByDistance(codeType, decoder):
+    retStats = []
+    for distance in range(27, 1, -2):
+        retStats.append(execExperiment([distance], [CONST_SHOTS], [CONST_ROUNDS], codeType, decoder))
+    return retStats
 
-def accuracyByShots():
-    return execExperiment([CONST_DISTANCE], SHOTS_RANGE, [CONST_ROUNDS])
+def accuracyByShots(codeType, decoder):
+    return execExperiment([CONST_DISTANCE], SHOTS_RANGE, [CONST_ROUNDS], codeType, decoder)
 
-def accuracyByRounds():
-    return execExperiment([CONST_DISTANCE], [CONST_SHOTS], ROUNDS_RANGE)
+def accuracyByRounds(codeType, decoder):
+    return execExperiment([CONST_DISTANCE], [CONST_SHOTS], ROUNDS_RANGE, codeType, decoder)
 
-def accuracyVariance():
+def accuracyVariance(codeType, decoder):
     repetitionStats = []
 
     for _ in range(CONST_VARIANCE_COUNT):
-        result = execExperiment([CONST_DISTANCE], [CONST_SHOTS], [CONST_ROUNDS])
+        result = execExperiment([CONST_DISTANCE], [CONST_SHOTS], [CONST_ROUNDS], codeType, decoder)
         repetitionStats.append(result)
 
     return repetitionStats
