@@ -20,11 +20,11 @@ SHOTS_TESTS = 10
 
 CONST_DISTANCE = 21
 CONST_SHOTS = 10**3
-CONST_ROUNDS = 50
+CONST_ROUNDS = 27
 
 CONST_VARIANCE_COUNT = 100
 
-DISTANCE_RANGE = range(START_DISTANCE, END_DISTANCE + 1, 2)
+DISTANCE_RANGE = range(END_DISTANCE, START_DISTANCE, -2)
 SHOTS_RANGE = np.linspace(START_SHOTS, END_SHOTS, SHOTS_TESTS, dtype=int).tolist()[::-1]
 ROUNDS_RANGE = np.linspace(START_ROUNDS, END_ROUNDS, ROUNDS_TESTS, dtype=int).tolist()[::-1]
 
@@ -32,7 +32,8 @@ MAX_ERRORS = CONST_SHOTS // 20
 
 CORES = 14
 
-noiseModel = SuperconductiveEM(0.004) # 0.4% base noise (Willow-approximated)
+#noiseModel = SuperconductiveEM(0.003) # 0.3% base noise (Sycamore-approximated)
+noiseModel = WillowEM() # Willow noise model
 
 def execExperiment(distanceList, shotsList, roundsList, codeType, decoder):
     collected_stats = None
@@ -41,13 +42,13 @@ def execExperiment(distanceList, shotsList, roundsList, codeType, decoder):
         for rounds in roundsList:
             customDecodersDict = None
             if decoder == "union_find_decoder":
-                customDecodersDict = {"union_find_decoder": UnionFindDecoder(codeType, rounds)}
+                customDecodersDict = {"union_find_decoder": UnionFindDecoder(codeType)}
 
             task = [
                 sinter.Task(
                     circuit=stim.Circuit.generated(
                         codeType,
-                        rounds=rounds,
+                        rounds=d,
                         distance=d,
                         before_round_data_depolarization=noiseModel.getBeforeRoundDataDepolarizationErrorRate(),
                         before_measure_flip_probability=noiseModel.getBeforeMeasurementErrorRate(),
@@ -78,7 +79,7 @@ def execExperiment(distanceList, shotsList, roundsList, codeType, decoder):
 
 def accuracyByDistance(codeType, decoder):
     retStats = []
-    for distance in range(27, 1, -2):
+    for distance in DISTANCE_RANGE:
         retStats.append(execExperiment([distance], [CONST_SHOTS], [CONST_ROUNDS], codeType, decoder))
     return retStats
 

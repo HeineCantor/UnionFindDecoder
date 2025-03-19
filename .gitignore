@@ -172,6 +172,7 @@ cython_debug/
 
 # Personal
 .qsurftest
+pictures
 test
 test.py
 experimental_setup/results

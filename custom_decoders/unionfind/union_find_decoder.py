@@ -16,6 +16,11 @@ OBSERVABLE_Y_COORD = {
     "planar" : 0
 }
 
+OBSERVABLE_DATA_POSITION = {
+    "rotated" : 1,
+    "planar" : 0
+}
+
 class UnionFindCompiledDecoder(sinter.CompiledDecoder):
     def __init__(self, codeType : str, detector_error_model : stim.DetectorErrorModel, rounds : int = None):
         super().__init__()
@@ -96,13 +101,14 @@ def predict_from_dem(sample: np.ndarray, codeType : str, dem : stim.DetectorErro
     detCoords = dem.get_detector_coordinates()
 
     # Note: approximation. We should actually the max of all three dimensions.
-    distance = int(list(detCoords.values())[-1][0])
-    distance = 27
+    distance = int(list(detCoords.values())[-1][-1])
+    rounds = int(list(detCoords.values())[-1][2])
 
-    size = (distance, distance)
+    size = (distance, distance, distance+1)
+    rounds = None # TODO: customize rounds
 
     if rounds is not None:
-        size = (distance, distance, rounds)
+        size = (distance, distance, rounds+1)
 
     code, decoder = initialize(size, CODE_TYPES[codeType], "unionfind", enabled_errors=["pauli"], plotting=False, faulty_measurements=True, initial_states=(0,0))
 
@@ -130,9 +136,10 @@ def predict_from_dem(sample: np.ndarray, codeType : str, dem : stim.DetectorErro
     tmpParity = 0
 
     obsYCoord = OBSERVABLE_Y_COORD[CODE_TYPES[codeType]]
+    obsDataPos = OBSERVABLE_DATA_POSITION[CODE_TYPES[codeType]]
 
     for m in matchings:
-        if m[1] == obsYCoord:
+        if m[1] == obsYCoord and m[0] % 2 == obsDataPos:
             tmpParity ^= 1
 
     return [tmpParity]

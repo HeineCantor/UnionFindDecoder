@@ -8,7 +8,7 @@ class WillowEM(ErrorModel):
         self.two_qubit_gate_error_rate = 0.0033 # 0.33%
         self.measurement_error_rate = 0.0077 # 0.77%
         self.reset_error_rate = 0 # 0% -> leakage controlled
-        self.error_rate = self.single_qubit_gate_error_rate
+        self.error_rate = self.two_qubit_gate_error_rate
 
     def getAfterResetErrorRate(self) -> float:
         return self.reset_error_rate
@@ -20,4 +20,4 @@ class WillowEM(ErrorModel):
         return 0
     
     def getCliffordErrorRate(self) -> float:
-        return self.single_qubit_gate_error_rate
+        return self.two_qubit_gate_error_rate

@@ -19,14 +19,14 @@ def saveGLTF(stimCircuit : Circuit, diagramType : str, name : str):
     with open(f"{name}.gltf", "w") as f:
         f.write(str(gltf))
 
-def countLogicalErrors_uf_rotated(circuit: Circuit, shots: int) -> int:
+def countLogicalErrors_uf_rotated(circuit: Circuit, rounds: int, shots: int) -> int:
     sampler = circuit.compile_detector_sampler()
     detectionEvents, observableFlips = sampler.sample(shots=shots, separate_observables=True)
 
     detectorErrorModel = circuit.detector_error_model(decompose_errors=True)
     detCoords = detectorErrorModel.get_detector_coordinates()
 
-    codeDistance = int(list(detCoords.values())[-1][-1])
+    codeDistance = int(list(detCoords.values())[-1][0]) // 2
 
     convCoords = {}
     for i in range(len(detCoords)):
@@ -34,8 +34,9 @@ def countLogicalErrors_uf_rotated(circuit: Circuit, shots: int) -> int:
 
     numErrors = 0
 
+    print("Initializing decoder")
     for shot in tqdm(range(shots)):
-        code, decoder = initialize((codeDistance, codeDistance), "rotated", "unionfind", enabled_errors=["pauli"], faulty_measurements=True, initial_states=(0,0)
+        code, decoder = initialize((codeDistance, codeDistance, rounds), "rotated", "unionfind", enabled_errors=["pauli"], faulty_measurements=True, initial_states=(0,0)
                                    , plotting=False)
         
         triggeredDetectorCoords = []
@@ -66,6 +67,7 @@ def countLogicalErrors_uf_rotated(circuit: Circuit, shots: int) -> int:
         if tmpParity != observableFlips[shot]:
             numErrors += 1
 
+        print(numErrors)
     return numErrors
 
 def countLogicalErrors_uf(circuit: Circuit, shots: int) -> int:
@@ -83,9 +85,9 @@ def countLogicalErrors_uf(circuit: Circuit, shots: int) -> int:
 
     numErrors = 0
 
-    for shot in tqdm(range(shots)):
+    for shot in (pbar := tqdm(range(shots))):
         code, decoder = initialize((codeDistance, codeDistance), "planar", "unionfind", enabled_errors=["pauli"], faulty_measurements=True, initial_states=(0,0), plotting=False)
-        
+
         triggeredDetectorCoords = []
         for detIndex in range(len(detectionEvents[shot])):
             if detectionEvents[shot][detIndex]:
