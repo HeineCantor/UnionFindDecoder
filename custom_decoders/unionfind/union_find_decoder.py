@@ -100,12 +100,10 @@ def predict_from_dem(sample: np.ndarray, codeType : str, dem : stim.DetectorErro
 
     detCoords = dem.get_detector_coordinates()
 
-    # Note: approximation. We should actually the max of all three dimensions.
-    distance = int(list(detCoords.values())[-1][-1])
-    rounds = int(list(detCoords.values())[-1][2])
+    distance = int(list(detCoords.values())[-1][0] / 2)
+    rounds = int(list(detCoords.values())[-1][-1])
 
     size = (distance, distance, distance+1)
-    rounds = None # TODO: customize rounds
 
     if rounds is not None:
         size = (distance, distance, rounds+1)

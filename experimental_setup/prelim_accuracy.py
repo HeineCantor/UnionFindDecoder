@@ -14,15 +14,16 @@ START_ROUNDS = 25
 END_ROUNDS = 100
 ROUNDS_TESTS = 10
 
-START_SHOTS = 5*10**2
-END_SHOTS = 5*10**3
+START_SHOTS = 10**3
+END_SHOTS = 10**4
 SHOTS_TESTS = 10
 
-CONST_DISTANCE = 21
-CONST_SHOTS = 10**3
-CONST_ROUNDS = 27
+CONST_DISTANCE = 23
+CONST_SHOTS = 10**4
+CONST_ROUNDS = 100
 
-CONST_VARIANCE_COUNT = 100
+CONST_SHOTS_FOR_VARIANCE = 10**3
+CONST_VARIANCE_COUNT = 50
 
 DISTANCE_RANGE = range(END_DISTANCE, START_DISTANCE, -2)
 SHOTS_RANGE = np.linspace(START_SHOTS, END_SHOTS, SHOTS_TESTS, dtype=int).tolist()[::-1]
@@ -48,7 +49,7 @@ def execExperiment(distanceList, shotsList, roundsList, codeType, decoder):
                 sinter.Task(
                     circuit=stim.Circuit.generated(
                         codeType,
-                        rounds=d,
+                        rounds=rounds,
                         distance=d,
                         before_round_data_depolarization=noiseModel.getBeforeRoundDataDepolarizationErrorRate(),
                         before_measure_flip_probability=noiseModel.getBeforeMeasurementErrorRate(),
@@ -93,7 +94,7 @@ def accuracyVariance(codeType, decoder):
     repetitionStats = []
 
     for _ in range(CONST_VARIANCE_COUNT):
-        result = execExperiment([CONST_DISTANCE], [CONST_SHOTS], [CONST_ROUNDS], codeType, decoder)
+        result = execExperiment([CONST_DISTANCE], [CONST_SHOTS_FOR_VARIANCE], [CONST_ROUNDS], codeType, decoder)
         repetitionStats.append(result)
 
     return repetitionStats

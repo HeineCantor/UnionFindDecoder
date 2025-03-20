@@ -58,8 +58,8 @@ def plotAccuracyByDistance(codeType, decoder):
 
     _plotAccuracyBy(stats[0], xAxis, yAxis, "Distance", log=True)
 
-def plotAccuracyByShots():
-    with open(RESULTS_PATH + "results_shots.txt", "r") as f:
+def plotAccuracyByShots(codeType, decoder):
+    with open(f"./experimental_setup/results/results_{codeType}_{decoder}/results_shots.txt", "r") as f:
         stats = eval(f.read())
 
     shotsDict = {}
@@ -80,8 +80,8 @@ def plotAccuracyByShots():
 
     _plotAccuracyBy(stats, xAxis, yAxis, "Shots", meanAndStdDev=True)
 
-def plotAccuracyByRounds():
-    with open(RESULTS_PATH + "results_rounds.txt", "r") as f:
+def plotAccuracyByRounds(codeType, decoder):
+    with open(f"./experimental_setup/results/results_{codeType}_{decoder}/results_rounds.txt", "r") as f:
         stats = eval(f.read())
 
     roundsDict = {}
@@ -99,8 +99,8 @@ def plotAccuracyByRounds():
 
     _plotAccuracyBy(stats, xAxis, yAxis, "Rounds", log=False)
 
-def plotAccuracyByVariance():
-    with open(RESULTS_PATH + "results_variance.txt", "r") as f:
+def plotAccuracyByVariance(codeType, decoder):
+    with open(f"./experimental_setup/results/results_{codeType}_{decoder}/results_variance.txt", "r") as f:
         stats = eval(f.read())
 
     varianceDict = {}
@@ -127,7 +127,7 @@ def plotAccuracyByVariance():
     plt.grid()
 
 def plotDistributionVariance(codeType, decoder):
-    with open(RESULTS_PATH + "results_variance.txt", "r") as f:
+    with open(f"./experimental_setup/results/results_{codeType}_{decoder}/results_variance.txt", "r") as f:
         stats = eval(f.read())
 
     varianceDict = {}

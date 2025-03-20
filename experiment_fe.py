@@ -52,8 +52,8 @@ def executePreliminaryDesign(codeType, decoder, overwrite=False):
 
 def plotPreliminaryDesign(codeType, decoder):
     plotAccuracyByDistance(codeType, decoder)
-    # plotAccuracyByShots(codeType, decoder)
-    # plotAccuracyByRounds(codeType, decoder)
+    plotAccuracyByShots(codeType, decoder)
+    plotAccuracyByRounds(codeType, decoder)
     # plotAccuracyByVariance(codeType, decoder)
     # plotDistributionVariance(codeType, decoder)
 
@@ -62,12 +62,8 @@ def plotPreliminaryDesign(codeType, decoder):
 if __name__ == "__main__":
     # generateAndExecuteDesign()
     #executePreliminaryDesign('surface_code:rotated_memory_z', 'pymatching')
-    #executePreliminaryDesign('surface_code:rotated_memory_z', 'fusion_blossom')
-    executePreliminaryDesign('surface_code:rotated_memory_z', 'union_find_decoder')
+    executePreliminaryDesign('surface_code:rotated_memory_z', 'fusion_blossom')
+    #executePreliminaryDesign('surface_code:rotated_memory_z', 'union_find_decoder')
     #plotPreliminaryDesign('surface_code:rotated_memory_z', 'pymatching')
     #plotPreliminaryDesign('surface_code:rotated_memory_z', 'fusion_blossom')
     plotPreliminaryDesign('surface_code:rotated_memory_z', 'union_find_decoder')
-
-
-
-    
