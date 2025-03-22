@@ -4,22 +4,20 @@ import numpy as np
 
 RESULTS_PATH = "experimental_setup/results/results_05/"
 
-def _plotAccuracyBy(stats, xAxis, yAxis, parameterName, log=True, meanAndStdDev=False):
+def _plotBy(stats, xAxis, yAxis, parameterName, responseName, decoderName, log=True, meanAndStdDev=False):
     p = stats[0].json_metadata['p']
     errorModelName = stats[0].json_metadata['error_model']
     shots = stats[0].shots
     rounds = stats[0].json_metadata['r']
     distance = stats[0].json_metadata['d']
 
-    plt.figure()
-
     if log:
         plt.yscale('log')
 
-    plt.plot(xAxis, yAxis, marker='o', label=f"Logical error rate")
+    plt.plot(xAxis, yAxis, marker='o', label=f"({decoderName}) {responseName}")
     plt.xlabel(parameterName)
-    plt.ylabel("Accuracy")
-    plt.title(f"Accuracy by {parameterName} - p={p} - {errorModelName} | Shots={shots} | Rounds={rounds} | d={distance}")
+    plt.ylabel(responseName)
+    plt.title(f"{responseName} by {parameterName} - p={p} - {errorModelName} | Shots={shots} | Rounds={rounds} | d={distance}")
 
     if meanAndStdDev:
         stdDev = np.std(yAxis)
@@ -33,71 +31,91 @@ def _plotAccuracyBy(stats, xAxis, yAxis, parameterName, log=True, meanAndStdDev=
 
     plt.xticks(xAxis)
 
-    plt.axhline(y=1-p, color='r', linestyle='--', label='Base error rate')
-
-    plt.grid()
+def _plotAccuracyBy(stats, xAxis, yAxis, parameterName, decoderName, log=True, meanAndStdDev=False):
+    _plotBy(stats, xAxis, yAxis, parameterName, "Accuracy", decoderName, log, meanAndStdDev)
+    plt.grid(visible=True)
     plt.legend()
 
-def plotAccuracyByDistance(codeType, decoder):
-    with open(f"./experimental_setup/results/results_{codeType}_{decoder}/results_distance.txt", "r") as f:
-        stats = eval(f.read())
+def _plotRuntimeBy(stats, xAxis, yAxis, parameterName, decoderName, log=True, meanAndStdDev=False):
+    _plotBy(stats, xAxis, yAxis, parameterName, "Runtime [s]", decoderName, log, meanAndStdDev)
+    plt.grid(visible=True)
+    plt.legend()
 
-    distanceDict = {}
+def plotAccuracyByDistance(codeType, decoders):
+    if type(decoders) != list:
+        decoders = [decoders]
 
-    for stat in stats:
-        stat = stat[0] # Unpack the list
-        distance = stat.json_metadata['d']
-        if distance not in distanceDict:
-            distanceDict[distance] = []
-        distanceDict[distance] = 1 - stat.errors / stat.shots
+    plt.figure()
+    for decoder in decoders:
+        with open(f"./experimental_setup/results/results_{codeType}_{decoder}/results_distance.txt", "r") as f:
+            stats = eval(f.read())
 
-    distanceDict = dict(sorted(distanceDict.items()))
+        distanceDict = {}
 
-    xAxis = list(distanceDict.keys())
-    yAxis = list(distanceDict.values())
+        for stat in stats:
+            stat = stat[0] # Unpack the list
+            distance = stat.json_metadata['d']
+            if distance not in distanceDict:
+                distanceDict[distance] = []
+            distanceDict[distance] = 1 - stat.errors / stat.shots
 
-    _plotAccuracyBy(stats[0], xAxis, yAxis, "Distance", log=True)
+        distanceDict = dict(sorted(distanceDict.items()))
 
-def plotAccuracyByShots(codeType, decoder):
-    with open(f"./experimental_setup/results/results_{codeType}_{decoder}/results_shots.txt", "r") as f:
-        stats = eval(f.read())
+        xAxis = list(distanceDict.keys())
+        yAxis = list(distanceDict.values())
 
-    shotsDict = {}
+        _plotAccuracyBy(stats[0], xAxis, yAxis, "Distance", decoder, log=True)
 
-    for stat in stats:
-        shots = stat.shots
-        if shots not in shotsDict:
-            shotsDict[shots] = []
-        shotsDict[shots] = 1 - stat.errors / stat.shots
+def plotAccuracyByShots(codeType, decoders):
+    if type(decoders) != list:
+        decoders = [decoders]
 
-    shotsDict = dict(sorted(shotsDict.items()))
+    plt.figure()
+    for decoder in decoders:
+        with open(f"./experimental_setup/results/results_{codeType}_{decoder}/results_shots.txt", "r") as f:
+            stats = eval(f.read())
 
-    xAxis = list(shotsDict.keys())
-    yAxis = list(shotsDict.values())
+        shotsDict = {}
 
-    mean = np.mean(yAxis)
-    stdDev = np.std(yAxis)
+        for stat in stats:
+            shots = stat.shots
+            if shots not in shotsDict:
+                shotsDict[shots] = []
+            shotsDict[shots] = 1 - stat.errors / stat.shots
 
-    _plotAccuracyBy(stats, xAxis, yAxis, "Shots", meanAndStdDev=True)
+        shotsDict = dict(sorted(shotsDict.items()))
 
-def plotAccuracyByRounds(codeType, decoder):
-    with open(f"./experimental_setup/results/results_{codeType}_{decoder}/results_rounds.txt", "r") as f:
-        stats = eval(f.read())
+        xAxis = list(shotsDict.keys())
+        yAxis = list(shotsDict.values())
 
-    roundsDict = {}
+        mean = np.mean(yAxis)
+        stdDev = np.std(yAxis)
 
-    for stat in stats:
-        rounds = stat.json_metadata['r']
-        if rounds not in roundsDict:
-            roundsDict[rounds] = []
-        roundsDict[rounds] = 1 - stat.errors / stat.shots
+        _plotAccuracyBy(stats, xAxis, yAxis, "Shots", decoder, meanAndStdDev=True)
 
-    roundsDict = dict(sorted(roundsDict.items()))
+def plotAccuracyByRounds(codeType, decoders):
+    if type(decoders) != list:
+        decoders = [decoders]
 
-    xAxis = list(roundsDict.keys())
-    yAxis = list(roundsDict.values())
+    plt.figure()
+    for decoder in decoders:
+        with open(f"./experimental_setup/results/results_{codeType}_{decoder}/results_rounds.txt", "r") as f:
+            stats = eval(f.read())
 
-    _plotAccuracyBy(stats, xAxis, yAxis, "Rounds", log=False)
+        roundsDict = {}
+
+        for stat in stats:
+            rounds = stat.json_metadata['r']
+            if rounds not in roundsDict:
+                roundsDict[rounds] = []
+            roundsDict[rounds] = 1 - stat.errors / stat.shots
+
+        roundsDict = dict(sorted(roundsDict.items()))
+
+        xAxis = list(roundsDict.keys())
+        yAxis = list(roundsDict.values())
+
+        _plotAccuracyBy(stats, xAxis, yAxis, "Rounds", decoder, log=False)
 
 def plotAccuracyByVariance(codeType, decoder):
     with open(f"./experimental_setup/results/results_{codeType}_{decoder}/results_variance.txt", "r") as f:
@@ -138,7 +156,7 @@ def plotDistributionVariance(codeType, decoder):
     xAxis = list(varianceDict.keys())
     yAxis = list(varianceDict.values())
 
-    fig, axs = plt.subplots(3)
+    fig, axs = plt.subplots(2)
     fig.suptitle('Shots distribution')
 
     binNum = 51
@@ -173,16 +191,40 @@ def plotDistributionVariance(codeType, decoder):
     axs[1].axvline(x=median, color='b', linestyle='--', label='Median error rate')
     axs[1].set_xlim([np.min(yAxis), np.max(yAxis)])
 
-    stdDev = np.std(yAxis[:100])
-    mean = np.mean(yAxis[:100])
-    median = np.median(yAxis[:100])
+    # stdDev = np.std(yAxis[:100])
+    # mean = np.mean(yAxis[:100])
+    # median = np.median(yAxis[:100])
 
-    axs[2].hist(yAxis[:100], bins=bins, edgecolor='black')
-    axs[2].set_title('Error rate by 100 repetitions')
-    axs[2].set_xlabel("Repetition")
-    axs[2].set_ylabel("Accuracy")
-    axs[2].axvline(x=mean, color='r', linestyle='--', label='Mean error rate')
-    axs[2].axvline(x=mean + stdDev, color='g', linestyle='--', label='Mean error rate + std dev')
-    axs[2].axvline(x=mean - stdDev, color='g', linestyle='--', label='Mean error rate - std dev')
-    axs[2].axvline(x=median, color='b', linestyle='--', label='Median error rate')
-    axs[2].set_xlim([np.min(yAxis), np.max(yAxis)])
+    # axs[2].hist(yAxis[:100], bins=bins, edgecolor='black')
+    # axs[2].set_title('Error rate by 100 repetitions')
+    # axs[2].set_xlabel("Repetition")
+    # axs[2].set_ylabel("Accuracy")
+    # axs[2].axvline(x=mean, color='r', linestyle='--', label='Mean error rate')
+    # axs[2].axvline(x=mean + stdDev, color='g', linestyle='--', label='Mean error rate + std dev')
+    # axs[2].axvline(x=mean - stdDev, color='g', linestyle='--', label='Mean error rate - std dev')
+    # axs[2].axvline(x=median, color='b', linestyle='--', label='Median error rate')
+    # axs[2].set_xlim([np.min(yAxis), np.max(yAxis)])
+
+def plotRuntimeByDistance(codeType, decoders):
+    if type(decoders) != list:
+        decoders = [decoders]
+
+    for decoder in decoders:
+        with open(f"./experimental_setup/results/results_{codeType}_{decoder}/results_distance.txt", "r") as f:
+            stats = eval(f.read())
+
+        distanceDict = {}
+
+        for stat in stats:
+            stat = stat[0] # Unpack the list
+            distance = stat.json_metadata['d']
+            if distance not in distanceDict:
+                distanceDict[distance] = []
+            distanceDict[distance] = stat.seconds / stat.shots
+
+        distanceDict = dict(sorted(distanceDict.items()))
+
+        xAxis = list(distanceDict.keys())
+        yAxis = list(distanceDict.values())
+
+        _plotRuntimeBy(stats[0], xAxis, yAxis, "Distance", decoder, log=True)
