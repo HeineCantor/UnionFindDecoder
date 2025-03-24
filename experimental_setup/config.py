@@ -14,6 +14,10 @@ SUBJECTS_QUICK = {
     "decoder" : [ "sparse_blossom" ]
 }
 
+# === Repetitions ===
+
+REPETITIONS = 2
+
 # === Factors ===
 
 #   === Constant Factors ===
