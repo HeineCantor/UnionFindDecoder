@@ -36,7 +36,7 @@ CORES = 14
 #noiseModel = SuperconductiveEM(0.003) # 0.3% base noise (Sycamore-approximated)
 noiseModel = WillowEM() # Willow noise model
 
-def execExperiment(distanceList, shotsList, roundsList, codeType, decoder):
+def execExperiment(distanceList, shotsList, roundsList, codeType, decoder, noiseModel=noiseModel):
     collected_stats = None
 
     for shots in shotsList:

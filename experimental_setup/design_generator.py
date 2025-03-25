@@ -1,11 +1,22 @@
 import numpy as np
 import pandas as pd
 import experimental_setup.config as config
+import os
 
 from itertools import product
 
 class DesignGenerator():
-    def generateDesign(quick: bool = False) -> pd.DataFrame:
+    def generateDesign(
+            roundsAsDistance: bool = True, 
+            quick: bool = False
+        ) -> pd.DataFrame:
+        '''
+        Generates a dataframe with all the possible combinations of the factors
+
+        Parameters:
+            roundsAsDistance (bool): If True, the number of rounds is the distance (a volume d^3). If False, rounds are taken from factors range in config (a volume r*d^2).
+        '''
+
         doeDataframe = pd.DataFrame()
         
         subjects = config.SUBJECTS
@@ -29,7 +40,12 @@ class DesignGenerator():
 
         # Generate subject combinations
         subjectLists = subjects.values()
-        factorLists = config.FACTORS.values()
+
+        if roundsAsDistance:
+            factorLists = [values for key, values in config.FACTORS.items() if key != "rounds"]
+        else:
+            factorLists = config.FACTORS.values()
+
         repetitions = range(config.REPETITIONS)
 
         combinations = list(product(*subjectLists, *factorLists, repetitions))
@@ -44,4 +60,18 @@ class DesignGenerator():
             for constFactorName in config.CONSTANT_FACTORS.keys():
                 doeDataframe.at[combIndex, constFactorName] = config.CONSTANT_FACTORS[constFactorName]
 
+        if roundsAsDistance:
+            doeDataframe["rounds"] = doeDataframe["distance"]
+
         return doeDataframe
+
+    def saveDesign(doeDataframe: pd.DataFrame, filename: str, overwrite: bool = False):
+        if not overwrite:
+            if os.path.exists(filename):
+                raise FileExistsError("File already exists. Set overwrite=True to overwrite it.")
+        doeDataframe.to_csv(filename, index=False)
+
+    def loadDesign(filename: str) -> pd.DataFrame:
+        if not os.path.exists(filename):
+            raise FileNotFoundError("File not found.")
+        return pd.read_csv(filename)

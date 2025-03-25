@@ -1,5 +1,5 @@
 # === Subject: Codes ===
-SUBJECT_CODES = [ "unrotated", "rotated", "unrotated_xzzx", "rotated_xzzx" ]
+SUBJECT_CODES = [ "repetition", "unrotated", "rotated" ]
 
 # === Subject: Decoders ===
 SUBJECT_DECODERS = [ "sparse_blossom", "union_find" ]
@@ -14,6 +14,9 @@ SUBJECTS_QUICK = {
     "decoder" : [ "sparse_blossom" ]
 }
 
+# === Subject: Noise Models ===
+SUBJECT_NOISE_MODELS = [ "si1000_004", "willow" ]
+
 # === Repetitions ===
 
 REPETITIONS = 2
@@ -21,15 +24,14 @@ REPETITIONS = 2
 # === Factors ===
 
 #   === Constant Factors ===
-CONSTANT_FACTORS = { 
-    "p" : 0.05, 
-    "shots" : 10000, 
-    "rounds" : 100 
+CONSTANT_FACTORS = {
+    "shots" : 10**4,
 }
 
 #   === Variable Factors ===
 FACTORS = { 
-    "distance" : range(3, 37 + 1, 2),
+    "distance" : range(3, 31 + 1, 2),
+    "rounds" : range(25, 100 + 1, 25)
 }
 
 # === Response Variables ===
