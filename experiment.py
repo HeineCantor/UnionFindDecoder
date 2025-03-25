@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 from experimental_setup.design_generator import DesignGenerator
 from experimental_setup.prelim_accuracy import accuracyByDistance, accuracyByShots, accuracyByRounds, accuracyVariance
-from experimental_setup.plotter import plotAccuracyByDistance, plotAccuracyByRounds, plotAccuracyByShots, plotAccuracyByVariance, plotDistributionVariance
+from experimental_setup.plotter import plotAccuracyByDistance, plotAccuracyByRounds, plotAccuracyByShots, plotAccuracyByVariance, plotDistributionVariance, plotRuntimeByDistance
 
 BASE_RESULT_SAVE_PATH = "./experimental_setup/results/results_"
 
@@ -50,20 +50,26 @@ def executePreliminaryDesign(codeType, decoder, overwrite=False):
         statsVariance = accuracyVariance(codeType, decoder)
         saveFile(statsVariance, variancePath, overwrite)
 
-def plotPreliminaryDesign(codeType, decoder):
-    plotAccuracyByDistance(codeType, decoder)
-    plotAccuracyByShots(codeType, decoder)
-    plotAccuracyByRounds(codeType, decoder)
-    plotAccuracyByVariance(codeType, decoder)
-    plotDistributionVariance(codeType, decoder)
+def plotPreliminaryDesign(codeType, decoders):
+    # if type(decoders) != list:
+    #     plotAccuracyByVariance(codeType, decoders)
+    #     plotDistributionVariance(codeType, decoders)
+    #     decoders = [decoders]
+
+    # plotAccuracyByDistance(codeType, decoders)
+    # plotAccuracyByShots(codeType, decoders)
+    # plotAccuracyByRounds(codeType, decoders)
+
+    plotRuntimeByDistance(codeType, decoders)
 
     plt.show()
 
 if __name__ == "__main__":
     # generateAndExecuteDesign()
-    #executePreliminaryDesign('surface_code:rotated_memory_z', 'pymatching')
-    #executePreliminaryDesign('surface_code:rotated_memory_z', 'fusion_blossom')
-    #executePreliminaryDesign('surface_code:rotated_memory_z', 'union_find_decoder')
-    plotPreliminaryDesign('surface_code:rotated_memory_z', 'pymatching')
-    plotPreliminaryDesign('surface_code:rotated_memory_z', 'fusion_blossom')
-    plotPreliminaryDesign('surface_code:rotated_memory_z', 'union_find_decoder')
+    # executePreliminaryDesign('surface_code:rotated_memory_z', 'pymatching')
+    # executePreliminaryDesign('surface_code:rotated_memory_z', 'fusion_blossom')
+    # executePreliminaryDesign('surface_code:rotated_memory_z', 'union_find_decoder')
+    # plotPreliminaryDesign('surface_code:rotated_memory_z', 'pymatching')
+    # plotPreliminaryDesign('surface_code:rotated_memory_z', 'fusion_blossom')
+    # plotPreliminaryDesign('surface_code:rotated_memory_z', 'union_find_decoder')
+    plotPreliminaryDesign('surface_code:rotated_memory_z', ['pymatching', 'union_find_decoder'])
