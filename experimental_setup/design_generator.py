@@ -30,7 +30,9 @@ class DesignGenerator():
         # Generate subject combinations
         subjectLists = subjects.values()
         factorLists = config.FACTORS.values()
-        combinations = list(product(*subjectLists, *factorLists))
+        repetitions = range(config.REPETITIONS)
+
+        combinations = list(product(*subjectLists, *factorLists, repetitions))
 
         # Generate design
         for combIndex, combination in enumerate(combinations):
