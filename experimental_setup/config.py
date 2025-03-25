@@ -4,18 +4,20 @@ SUBJECT_CODES = [ "repetition", "unrotated", "rotated" ]
 # === Subject: Decoders ===
 SUBJECT_DECODERS = [ "sparse_blossom", "union_find" ]
 
+# === Subject: Noise Models ===
+SUBJECT_NOISE_MODELS = [ "si1000_004", "willow" ]
+
 SUBJECTS = {
     "code" : SUBJECT_CODES,
-    "decoder" : SUBJECT_DECODERS
+    "decoder" : SUBJECT_DECODERS,
+    "noiseModel" : SUBJECT_NOISE_MODELS
 }
 
 SUBJECTS_QUICK = {
     "code" : [ "rotated" ],
-    "decoder" : [ "sparse_blossom" ]
+    "decoder" : [ "sparse_blossom" ],
+    "noiseModel" : [ "willow" ]
 }
-
-# === Subject: Noise Models ===
-SUBJECT_NOISE_MODELS = [ "si1000_004", "willow" ]
 
 # === Repetitions ===
 
