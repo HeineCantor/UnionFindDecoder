@@ -19,6 +19,19 @@ def saveGLTF(stimCircuit : Circuit, diagramType : str, name : str):
     with open(f"{name}.gltf", "w") as f:
         f.write(str(gltf))
 
+def countLogicalErrors_uf_repetition(circuit: Circuit, shots: int) -> int:
+    sampler = circuit.compile_detector_sampler()
+    detectionEvents, observableFlips = sampler.sample(shots=shots, separate_observables=True)
+
+    detectorErrorModel = circuit.detector_error_model(decompose_errors=True)
+    detCoords = detectorErrorModel.get_detector_coordinates()
+
+    codeDistance = int(list(detCoords.values())[-1][0]) // 2
+
+    convCoords = {}
+    for i in range(len(detCoords)):
+        convCoords[i] = (detCoords[i][0] / 2 - 0.5, detCoords[i][1] / 2 - 0.5, detCoords[i][2])
+
 def countLogicalErrors_uf_rotated(circuit: Circuit, rounds: int, shots: int) -> int:
     sampler = circuit.compile_detector_sampler()
     detectionEvents, observableFlips = sampler.sample(shots=shots, separate_observables=True)
