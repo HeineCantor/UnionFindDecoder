@@ -9,16 +9,19 @@ CODE_TYPES = {
     "surface_code:rotated_memory_z" : "rotated",
     "surface_code:unrotated_memory_x" : "planar",
     "surface_code:rotated_memory_x" : "rotated",
+    "repetition_code:memory" : "repetition"
 }
 
 OBSERVABLE_Y_COORD = {
     "rotated" : 1,
-    "planar" : 0
+    "planar" : 0,
+    "repetition" : 0
 }
 
 OBSERVABLE_DATA_POSITION = {
     "rotated" : 1,
-    "planar" : 0
+    "planar" : 0,
+    "repetition" : -1
 }
 
 class UnionFindCompiledDecoder(sinter.CompiledDecoder):
@@ -86,6 +89,9 @@ def init_from_dem(dem: stim.DetectorErrorModel, codeType: str) -> dict:
     elif CODE_TYPES[codeType] == "planar":
         for i in range(len(detCoords)):
             convCoords[i] = (detCoords[i][0] / 2 + 0.5, detCoords[i][1] / 2, detCoords[i][2])
+    elif CODE_TYPES[codeType] == "repetition":
+        for i in range(len(detCoords)):
+            convCoords[i] = (detCoords[i][0] / 2, 0, detCoords[i][1])
 
     return convCoords
 
@@ -102,6 +108,9 @@ def predict_from_dem(sample: np.ndarray, codeType : str, dem : stim.DetectorErro
 
     distance = int(list(detCoords.values())[-1][0] / 2)
     rounds = int(list(detCoords.values())[-1][-1])
+
+    if codeType == "repetition_code:memory":
+        distance = int(list(detCoords.values())[-1][0]+1) // 2 + 1
 
     size = (distance, distance, distance+1)
 
@@ -130,14 +139,23 @@ def predict_from_dem(sample: np.ndarray, codeType : str, dem : stim.DetectorErro
         matchings = [str(m[0]).removeprefix("ez-").removeprefix("ez|").split('|')[0] for m in matchings if "ez" in str(m[0])]
         matchings = [(float(m.split(',')[0][1:]), float(m.split(',')[1][:-1])) for m in matchings]
         matchings = [(int((m[0] - 0.5) * 2), int(m[1] * 2)) for m in matchings]
+    elif CODE_TYPES[codeType] == "repetition":
+        matchings = [str(m[0]).removeprefix("ex-").removeprefix("ex|").split('|')[0] for m in matchings if "ex" in str(m[0])]
+        matchings = [(float(m.split(',')[0][1:]), float(m.split(',')[1][:-1])) for m in matchings]
+        matchings = [(int(m[0] * 2), 0) for m in matchings]
 
     tmpParity = 0
 
     obsYCoord = OBSERVABLE_Y_COORD[CODE_TYPES[codeType]]
     obsDataPos = OBSERVABLE_DATA_POSITION[CODE_TYPES[codeType]]
 
-    for m in matchings:
-        if m[1] == obsYCoord and m[0] % 2 == obsDataPos:
-            tmpParity ^= 1
+    if not CODE_TYPES[codeType] == "repetition":
+        for m in matchings:
+            if m[1] == obsYCoord and m[0] % 2 == obsDataPos:
+                tmpParity ^= 1
+    else:
+        for m in matchings:
+            if m[0] == (distance-1)*2:
+                tmpParity ^= 1
 
     return [tmpParity]
