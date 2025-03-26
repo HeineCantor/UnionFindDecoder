@@ -10,7 +10,17 @@ TEST_FILE = f"results/{PROFILE_NAME}.csv"
 ERROR_RATE_HEADER = "error_rate"
 RUNTIME_HEADER = "runtime [s]"
 
-# TODO: dataflow delle chiamate per fare capire bene (stilizza il grafico su Docs Slides)
+
+#   Expriments dataflow: generator makes a design, experimenter executes it, plotter plots the results
+#
+#      │                                                                                     
+#      │ profile                                                  ┌─────────┐                
+#      ▼               ┌──┬─────────────┐                         ├─────────┤                
+# ┌─────────────┐      ├──┼─────────────┤    ┌────────────────┐   │         │   ┌───────────┐
+# │  Generator  ├─────►│  │ Experiments ├───►│  Experimenter  ├──►│ Results ├──►│  Plotter  │
+# └─────────────┘      └──┴─────────────┘    └────────────────┘   │         │   └───────────┘
+#                                                                 │         │                
+#                                                                 └─────────┘                
 if __name__ == "__main__":
     if not os.path.exists(TEST_FILE):
         testFrame = ExperimentGenerator.generateDesign(roundsAsDistance=False, profile=PROFILE_NAME)
