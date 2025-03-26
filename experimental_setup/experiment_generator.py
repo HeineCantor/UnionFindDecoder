@@ -9,7 +9,7 @@ from itertools import product
 class ExperimentGenerator():
     def generateDesign(
             roundsAsDistance: bool = True, 
-            quick: bool = False
+            profile: str = "full"
         ) -> pd.DataFrame:
         '''
         Generates a dataframe with all the possible combinations of the factors
@@ -20,35 +20,38 @@ class ExperimentGenerator():
 
         doeDataframe = pd.DataFrame()
         
-        # TODO: change to profile management
-        subjects = config.SUBJECTS
-        if quick:
-            subjects = config.SUBJECTS_QUICK
+        selectedProfile = config.profiles[profile]
 
-        subjectNames = list(subjects.keys())
+        subjectsDict = selectedProfile["subjects"]
+        factorsDict = selectedProfile["factors"]
+        constantFactorsDict = selectedProfile["constant_factors"]
+        responseVariablesDict = selectedProfile["response_variables"]
+        repetitionsValue = selectedProfile["repetitions"]
+
+        subjectNames = list(subjectsDict.keys())
 
         # Setting table header
         for subjectName in subjectNames:
             doeDataframe[subjectName] = ""
 
-        for factorName in config.CONSTANT_FACTORS.keys():
-            doeDataframe[factorName] = config.CONSTANT_FACTORS[factorName]
+        for factorName in constantFactorsDict.keys():
+            doeDataframe[factorName] = constantFactorsDict[factorName]
 
-        for factorName in config.FACTORS.keys():
+        for factorName in factorsDict.keys():
             doeDataframe[factorName] = ""
 
-        for responseVariable in config.RESPONSE_VARIABLES:
+        for responseVariable in responseVariablesDict:
             doeDataframe[responseVariable] = ""
 
         # Generate subject combinations
-        subjectLists = subjects.values()
+        subjectLists = subjectsDict.values()
 
         if roundsAsDistance:
-            factorLists = [values for key, values in config.FACTORS.items() if key != "rounds"]
+            factorLists = [values for key, values in factorsDict.items() if key != "rounds"]
         else:
-            factorLists = config.FACTORS.values()
+            factorLists = factorsDict.values()
 
-        repetitions = range(config.REPETITIONS)
+        repetitions = range(repetitionsValue)
 
         # Full factorial design {subjects} x {variable factors} x {repetitions}
         combinations = list(product(*subjectLists, *factorLists, repetitions))
@@ -58,11 +61,11 @@ class ExperimentGenerator():
             for subjectIndex, subjectName in enumerate(subjectNames):
                 doeDataframe.at[combIndex, subjectName] = combination[subjectIndex]
 
-            for factorIndex, factorName in enumerate(config.FACTORS.keys()):
+            for factorIndex, factorName in enumerate(factorsDict.keys()):
                 doeDataframe.at[combIndex, factorName] = combination[subjectIndex + factorIndex + 1]
 
-            for constFactorName in config.CONSTANT_FACTORS.keys():
-                doeDataframe.at[combIndex, constFactorName] = config.CONSTANT_FACTORS[constFactorName]
+            for constFactorName in constantFactorsDict.keys():
+                doeDataframe.at[combIndex, constFactorName] = constantFactorsDict[constFactorName]
 
         if roundsAsDistance:
             doeDataframe["rounds"] = doeDataframe["distance"]

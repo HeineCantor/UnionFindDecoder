@@ -4,7 +4,8 @@ import pandas as pd
 from experimental_setup.experiment_generator import ExperimentGenerator
 from experimental_setup.experimenter import Experimenter
 
-TEST_FILE = "test.csv"
+PROFILE_NAME = "preliminary_distance"
+TEST_FILE = f"{PROFILE_NAME}.csv"
 
 ERROR_RATE_HEADER = "error_rate"
 RUNTIME_HEADER = "runtime [s]"
@@ -12,7 +13,7 @@ RUNTIME_HEADER = "runtime [s]"
 # TODO: dataflow delle chiamate per fare capire bene (stilizza il grafico su Docs Slides)
 if __name__ == "__main__":
     if not os.path.exists(TEST_FILE):
-        testFrame = ExperimentGenerator.generateDesign(roundsAsDistance=True)
+        testFrame = ExperimentGenerator.generateDesign(roundsAsDistance=False, profile=PROFILE_NAME)
         ExperimentGenerator.saveDesign(testFrame, TEST_FILE)
 
     testFrame = ExperimentGenerator.loadDesign(TEST_FILE)

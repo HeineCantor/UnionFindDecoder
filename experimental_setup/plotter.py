@@ -4,6 +4,7 @@ import numpy as np
 
 RESULTS_PATH = "experimental_setup/results/results_05/"
 
+# TODO: da buttare tutto giù e rifarlo per bene
 def _plotBy(stats, xAxis, yAxis, parameterName, responseName, decoderName, log=True, meanAndStdDev=False):
     p = stats[0].json_metadata['p']
     errorModelName = stats[0].json_metadata['error_model']

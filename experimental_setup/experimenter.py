@@ -40,6 +40,7 @@ class Experimenter():
                 if decoder == "union_find_decoder":
                     customDecodersDict = {"union_find_decoder": UnionFindDecoder(codeType)}
 
+                rounds = int(rounds)
                 task = [
                     sinter.Task(
                         circuit=stim.Circuit.generated(
