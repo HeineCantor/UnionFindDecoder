@@ -15,5 +15,5 @@ class WillowEM(ErrorModel):
             "before_round_data_depolarization": 0, # Not a phenomenological error model
             "before_measure_flip_probability": self.measurement_error,
             "after_clifford_depolarization": self.two_qubit_gate_error, # Stim.generated handles one_qubit_errors the same as two_qubit_errors
-            "after_reset_flip_probability:": self.reset_error
+            "after_reset_flip_probability": self.reset_error
         }
