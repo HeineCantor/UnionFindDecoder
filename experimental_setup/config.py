@@ -21,7 +21,7 @@ SUBJECTS_QUICK = {
 
 # === Repetitions ===
 
-REPETITIONS = 2
+REPETITIONS = 1
 
 # === Factors ===
 
@@ -38,4 +38,4 @@ FACTORS = {
 
 # === Response Variables ===
 
-RESPONSE_VARIABLES = [ "error_rate", "runtime per shot [s/shot]" ]
+RESPONSE_VARIABLES = [ "error_rate", "runtime [s]" ]

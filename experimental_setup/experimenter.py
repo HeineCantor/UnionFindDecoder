@@ -23,7 +23,7 @@ decoderDict = {
 CORES = 14
 
 class Experimenter():
-    def execExperiment(distanceList, shotsList, roundsList, codeType, decoder, noiseModel):
+    def execExperiment(distanceList, shotsList, roundsList, codeType, decoder, noiseModel : ErrorModel):
         collected_stats = None
 
         noiseModel = noiseModelDict[noiseModel]
@@ -31,6 +31,8 @@ class Experimenter():
         decoder = decoderDict[decoder]
 
         shotsList = [int(shots) for shots in shotsList]
+
+        stimNoiseModel = noiseModel.toStim()
 
         for shots in shotsList:
             for rounds in roundsList:
@@ -44,12 +46,12 @@ class Experimenter():
                             codeType,
                             rounds=rounds,
                             distance=d,
-                            before_round_data_depolarization=noiseModel.getBeforeRoundDataDepolarizationErrorRate(),
-                            before_measure_flip_probability=noiseModel.getBeforeMeasurementErrorRate(),
-                            after_clifford_depolarization=noiseModel.getCliffordErrorRate(),
-                            after_reset_flip_probability=noiseModel.getAfterResetErrorRate(),
+                            before_round_data_depolarization=stimNoiseModel["before_round_data_depolarization"],
+                            before_measure_flip_probability=stimNoiseModel["before_measure_flip_probability"],
+                            after_clifford_depolarization=stimNoiseModel["after_clifford_depolarization"],
+                            after_reset_flip_probability=stimNoiseModel["after_reset_flip_probability"],
                         ),
-                        json_metadata={'d': d, 'p': noiseModel.error_rate, 'r': rounds, 'error_model': noiseModel.name},
+                        json_metadata={'d': d, 'r': rounds, 'error_model': noiseModel.name},
                     )
                     for d in distanceList
                 ]
