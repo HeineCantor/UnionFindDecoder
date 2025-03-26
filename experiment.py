@@ -11,8 +11,9 @@ ERROR_RATE_HEADER = "error_rate"
 RUNTIME_HEADER = "runtime [s]"
 
 
-#   Expriments dataflow: generator makes a design, experimenter executes it, plotter plots the results
+# Expriments dataflow: generator makes a design, experimenter executes the experiments, plotter plots the results
 #
+# =================================================================================================
 #      │                                                                                     
 #      │ profile                                                  ┌─────────┐                
 #      ▼               ┌──┬─────────────┐                         ├─────────┤                
@@ -21,6 +22,7 @@ RUNTIME_HEADER = "runtime [s]"
 # └─────────────┘      └──┴─────────────┘    └────────────────┘   │         │   └───────────┘
 #                                                                 │         │                
 #                                                                 └─────────┘                
+# =================================================================================================
 if __name__ == "__main__":
     if not os.path.exists(TEST_FILE):
         testFrame = ExperimentGenerator.generateDesign(roundsAsDistance=False, profile=PROFILE_NAME)
