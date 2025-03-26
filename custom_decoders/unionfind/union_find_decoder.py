@@ -29,14 +29,21 @@ class UnionFindCompiledDecoder(sinter.CompiledDecoder):
         super().__init__()
         self.codeType = codeType
         self.dem = detector_error_model
-        self.convCoords = init_from_dem(detector_error_model, codeType)
+
+        detCoords = detector_error_model.get_detector_coordinates()
+        self.convCoords, self.distance, self.rounds = getCodeParams(detCoords, codeType)
 
     def decode_shots_bit_packed(self, *, bit_packed_detection_event_data: np.ndarray,) -> np.ndarray:
         all_predictions = []
         
         for shot in bit_packed_detection_event_data:
             unpacked = np.unpackbits(shot, bitorder='little')
-            prediction = predict_from_dem(sample=unpacked, codeType=self.codeType, dem=self.dem, convCoords=self.convCoords)
+            prediction = predict_from_qsurface(
+                sample=unpacked, 
+                codeType=self.codeType, 
+                convCoords=self.convCoords, 
+                distance=self.distance,
+                rounds=self.rounds)
             all_predictions.append(prediction)
 
         return np.packbits(all_predictions, axis=1, bitorder='little')
@@ -57,7 +64,8 @@ class UnionFindDecoder(sinter.Decoder):
                          tmp_dir: pathlib.Path,
                        ) -> None:
 
-        self.convCoords, self.distance = init_from_dem(stim.DetectorErrorModel.from_file(dem_path), self.codeType)
+        detCoords = stim.DetectorErrorModel.from_file(dem_path).get_detector_coordinates()
+        convCoords, distance, rounds = getCodeParams(detCoords, self.codeType)
 
         packed_detection_event_data = np.fromfile(dets_b8_in_path, dtype=np.uint8)
         packed_detection_event_data.shape = (num_shots, math.ceil(num_dets / 8))
@@ -66,7 +74,12 @@ class UnionFindDecoder(sinter.Decoder):
         all_predictions = []
         for shot in packed_detection_event_data:
             unpacked = np.unpackbits(shot, bitorder='little')
-            prediction = predict_from_dem(sample=unpacked)
+            prediction = predict_from_qsurface(
+                sample=unpacked,
+                codeType=self.codeType,
+                convCoords=convCoords,
+                distance=distance,
+                rounds=rounds)
             all_predictions.append(prediction)
 
         # Write predictions.
@@ -74,26 +87,8 @@ class UnionFindDecoder(sinter.Decoder):
 
     def compile_decoder_for_dem(self, *, dem: stim.DetectorErrorModel) -> 'sinter.CompiledDecoder':
         return UnionFindCompiledDecoder(self.codeType, dem)
-    
 
-def init_from_dem(dem: stim.DetectorErrorModel, codeType: str) -> dict:
-    detCoords = dem.get_detector_coordinates()
-    convCoords = {}
-
-    #  TODO: estrai metodi + astrazione con classe
-    if CODE_TYPES[codeType] == "rotated":
-        for i in range(len(detCoords)):
-            convCoords[i] = (detCoords[i][0] / 2 - 0.5, detCoords[i][1] / 2 - 0.5, detCoords[i][2])
-    elif CODE_TYPES[codeType] == "planar":
-        for i in range(len(detCoords)):
-            convCoords[i] = (detCoords[i][0] / 2 + 0.5, detCoords[i][1] / 2, detCoords[i][2])
-    elif CODE_TYPES[codeType] == "repetition":
-        for i in range(len(detCoords)):
-            convCoords[i] = (detCoords[i][0] / 2, 0, detCoords[i][1])
-
-    return convCoords
-
-def predict_from_dem(sample: np.ndarray, codeType : str, dem : stim.DetectorErrorModel, convCoords : dict) -> np.ndarray:
+def predict_from_qsurface(sample: np.ndarray, codeType : str, convCoords : dict, distance: int, rounds: int) -> np.ndarray:
     try:
         from qsurface.main import initialize, run
     except Exception as e:
@@ -102,43 +97,75 @@ def predict_from_dem(sample: np.ndarray, codeType : str, dem : stim.DetectorErro
         else:
             raise e
 
-    detCoords = dem.get_detector_coordinates()
+    # Initialize params for qsurface
+    size = (distance, distance, rounds+1) # last round is to check final clifford errors
+    error_dict_for_qsurface = getqSurfaceErrorDict(sample, convCoords)
 
-    distance = int(list(detCoords.values())[-1][0] / 2)
+    # Run decoder with params
+    code, decoder = initialize(size, CODE_TYPES[codeType], "unionfind", enabled_errors=["pauli"], plotting=False, faulty_measurements=True, initial_states=(0,0))
+    output = run(code, decoder, error_rates = {"p_bitflip": 0, "p_phaseflip": 0}, decode_initial=False, custom_error_dict=error_dict_for_qsurface)
+
+    # Get output matchings
+    matchings = output["matchings"]
+
+    # Get observable parity
+    obsParity = getObservableParity(codeType, matchings, distance)
+
+    return obsParity
+
+def getCodeParams(detCoords: dict, codeType: str) -> dict:
+    convCoords = {}
+    distance = 0
+
+    if CODE_TYPES[codeType] == "rotated":
+        convCoords, distance = getRotatedParams(detCoords)
+    elif CODE_TYPES[codeType] == "planar":
+        convCoords, distance = getUnrotatedParams(detCoords)
+    elif CODE_TYPES[codeType] == "repetition":
+        convCoords, distance = getRepetitionParams(detCoords)
+
     rounds = int(list(detCoords.values())[-1][-1])
 
-    if codeType == "repetition_code:memory":
-        distance = int(list(detCoords.values())[-1][0]+1) // 2 + 1
+    return convCoords, distance, rounds
 
-    size = (distance, distance, distance+1)
+def getRotatedParams(detCoords: dict) -> dict:
+    convCoords =  {i : (detCoords[i][0] / 2 - 0.5, detCoords[i][1] / 2 - 0.5, detCoords[i][2]) for i in range(len(detCoords))}
+    distance = int(list(detCoords.values())[-1][0] / 2) # the last coordinate is the one with the highest x value, so take it and halve it
 
-    if rounds is not None:
-        size = (distance, distance, rounds+1)
+    return convCoords, distance
 
-    code, decoder = initialize(size, CODE_TYPES[codeType], "unionfind", enabled_errors=["pauli"], plotting=False, faulty_measurements=True, initial_states=(0,0))
+def getUnrotatedParams(detCoords: dict) -> dict:
+    convCoords = {i : (detCoords[i][0] / 2 + 0.5, detCoords[i][1] / 2, detCoords[i][2]) for i in range(len(detCoords))}
+    distance = int(list(detCoords.values())[-1][0] / 2) + 1
 
+    return convCoords, distance
+
+def getRepetitionParams(detCoords: dict) -> dict:
+    convCoords = {i : (detCoords[i][0] / 2, 0, detCoords[i][1]) for i in range(len(detCoords))}
+    distance = int(list(detCoords.values())[-1][0]+1) // 2 + 1
+
+    return convCoords, distance
+
+def getqSurfaceErrorDict(sample : np.ndarray, convCoords : dict) -> dict:
     error_dict_for_qsurface = {}
     for i, err in enumerate(sample):
         if err == 1:
             error_dict_for_qsurface[convCoords[i]] = err
 
-    # Note: error rates are useless.
-    output = run(code, decoder, error_rates = {"p_bitflip": 0.1, "p_phaseflip": 0.1}, decode_initial=False, custom_error_dict=error_dict_for_qsurface)
-    matchings = output["matchings"]
+    return error_dict_for_qsurface
 
-    # Conversion from qSurface matching notation.
-    # Note: should be generalized. We must take only the memory measurement observables (z or x) and the convertion 
-    #       should be done with respect to the code type.
+# TODO: this is correct but could be optimized. Also, the observable exact coordinates should be taken from DEM (someway)
+def getObservableParity(codeType : str, matchings : list, distance : int) -> np.ndarray:
     if CODE_TYPES[codeType] == "rotated":
-        matchings = [str(m[0]).removeprefix("ex-").removeprefix("ex|").split('|')[0] for m in matchings if "ex" in str(m[0])]
+        matchings = [str(m[0]).removeprefix("ex-").split('|')[0] for m in matchings if "ex-" in str(m[0])]
         matchings = [(float(m.split(',')[0][1:]), float(m.split(',')[1][:-1])) for m in matchings]
         matchings = [(int((m[0] + 0.5) * 2), int((m[1] + 0.5) * 2)) for m in matchings]
     elif CODE_TYPES[codeType] == "planar":
-        matchings = [str(m[0]).removeprefix("ez-").removeprefix("ez|").split('|')[0] for m in matchings if "ez" in str(m[0])]
+        matchings = [str(m[0]).removeprefix("ez-").split('|')[0] for m in matchings if "ez-" in str(m[0])]
         matchings = [(float(m.split(',')[0][1:]), float(m.split(',')[1][:-1])) for m in matchings]
         matchings = [(int((m[0] - 0.5) * 2), int(m[1] * 2)) for m in matchings]
     elif CODE_TYPES[codeType] == "repetition":
-        matchings = [str(m[0]).removeprefix("ex-").removeprefix("ex|").split('|')[0] for m in matchings if "ex" in str(m[0])]
+        matchings = [str(m[0]).removeprefix("ex-").split('|')[0] for m in matchings if "ex-" in str(m[0])]
         matchings = [(float(m.split(',')[0][1:]), float(m.split(',')[1][:-1])) for m in matchings]
         matchings = [(int(m[0] * 2), 0) for m in matchings]
 
