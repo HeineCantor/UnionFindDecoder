@@ -5,7 +5,7 @@ from experimental_setup.experiment_generator import ExperimentGenerator
 from experimental_setup.experimenter import Experimenter
 
 PROFILE_NAME = "preliminary_distance"
-TEST_FILE = f"{PROFILE_NAME}.csv"
+TEST_FILE = f"results/{PROFILE_NAME}.csv"
 
 ERROR_RATE_HEADER = "error_rate"
 RUNTIME_HEADER = "runtime [s]"
