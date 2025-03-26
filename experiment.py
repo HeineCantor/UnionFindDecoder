@@ -1,10 +1,10 @@
 import os
 import pandas as pd
+import matplotlib.pyplot as plt
 
-from experimental_setup.experiment_generator import ExperimentGenerator
-from experimental_setup.experimenter import Experimenter
+from experimental_setup import ExperimentGenerator, Experimenter, Plotter
 
-PROFILE_NAME = "preliminary_distance"
+PROFILE_NAME = "mock"
 TEST_FILE = f"results/{PROFILE_NAME}.csv"
 
 ERROR_RATE_HEADER = "error_rate"
@@ -25,7 +25,7 @@ RUNTIME_HEADER = "runtime [s]"
 # =================================================================================================
 if __name__ == "__main__":
     if not os.path.exists(TEST_FILE):
-        testFrame = ExperimentGenerator.generateDesign(roundsAsDistance=False, profile=PROFILE_NAME)
+        testFrame = ExperimentGenerator.generateDesign(roundsAsDistance=True, profile=PROFILE_NAME)
         ExperimentGenerator.saveDesign(testFrame, TEST_FILE)
 
     testFrame = ExperimentGenerator.loadDesign(TEST_FILE)
@@ -49,3 +49,12 @@ if __name__ == "__main__":
         testFrame.at[index, ERROR_RATE_HEADER] = error_rate
         testFrame.at[index, RUNTIME_HEADER] = runtime
         ExperimentGenerator.saveDesign(testFrame, TEST_FILE, overwrite=True)
+
+    testFrame = ExperimentGenerator.loadDesign("results/mock.csv")
+    Plotter.plot(
+        testFrame,
+        fixedSubjects = { "code": ["rotated"], "decoder": ["sparse_blossom"], "noiseModel": ["willow"] },
+        variableFactor = "distance",
+        responseVariable = ERROR_RATE_HEADER
+    )
+    plt.show()

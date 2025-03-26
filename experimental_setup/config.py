@@ -21,6 +21,8 @@ SUBJECTS_QUICK = {
     "noiseModel" : [ "willow" ]
 }
 
+SUBJECTS_MOCK = SUBJECTS_QUICK
+
 # === Repetitions ===
 
 REPETITIONS = 1
@@ -80,6 +82,13 @@ FACTORS_PRELIM_VARIANCE = {}
 RESPONSE_VARIABLES = [ "error_rate", "runtime [s]" ]
 
 profiles = {
+    "mock": {
+        "subjects" : SUBJECTS_MOCK,
+        "factors" : FACTORS,
+        "constant_factors" : CONSTANT_FACTORS,
+        "repetitions" : 1,
+        "response_variables" : RESPONSE_VARIABLES
+    },
     "quick" : {
         "subjects" : SUBJECTS_QUICK,
         "factors" : FACTORS,
