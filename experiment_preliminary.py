@@ -1,7 +1,7 @@
 import os
 import matplotlib.pyplot as plt
 
-from experimental_setup.design_generator import DesignGenerator
+from experimental_setup.experiment_generator import DesignGenerator
 from experimental_setup.prelim_accuracy import accuracyByDistance, accuracyByShots, accuracyByRounds, accuracyVariance
 from experimental_setup.plotter import plotAccuracyByDistance, plotAccuracyByRounds, plotAccuracyByShots, plotAccuracyByVariance, plotDistributionVariance, plotRuntimeByDistance
 

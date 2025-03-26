@@ -5,7 +5,8 @@ import os
 
 from itertools import product
 
-class DesignGenerator():
+# TODO: separare csv di esperimenti e risultati (perché?)
+class ExperimentGenerator():
     def generateDesign(
             roundsAsDistance: bool = True, 
             quick: bool = False
@@ -19,13 +20,14 @@ class DesignGenerator():
 
         doeDataframe = pd.DataFrame()
         
+        # TODO: change to profile management
         subjects = config.SUBJECTS
         if quick:
             subjects = config.SUBJECTS_QUICK
 
         subjectNames = list(subjects.keys())
 
-        # Set header
+        # Setting table header
         for subjectName in subjectNames:
             doeDataframe[subjectName] = ""
 
@@ -48,12 +50,14 @@ class DesignGenerator():
 
         repetitions = range(config.REPETITIONS)
 
+        # Full factorial design {subjects} x {variable factors} x {repetitions}
         combinations = list(product(*subjectLists, *factorLists, repetitions))
 
-        # Generate design
+        # Generate experiment table
         for combIndex, combination in enumerate(combinations):
             for subjectIndex, subjectName in enumerate(subjectNames):
                 doeDataframe.at[combIndex, subjectName] = combination[subjectIndex]
+
             for factorIndex, factorName in enumerate(config.FACTORS.keys()):
                 doeDataframe.at[combIndex, factorName] = combination[subjectIndex + factorIndex + 1]
 

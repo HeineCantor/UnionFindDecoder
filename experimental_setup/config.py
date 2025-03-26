@@ -38,4 +38,4 @@ FACTORS = {
 
 # === Response Variables ===
 
-RESPONSE_VARIABLES = [ "error_rate", "runtime" ]
+RESPONSE_VARIABLES = [ "error_rate", "runtime [s]" ]
