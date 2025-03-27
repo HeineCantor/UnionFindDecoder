@@ -1,6 +1,8 @@
 import stim, sinter
 from typing import List
+import pandas as pd
 
+from experimental_setup import config
 from custom_decoders.unionfind.union_find_decoder import UnionFindDecoder
 from error_models import ErrorModel, SuperconductiveEM, WillowEM
 
@@ -37,8 +39,8 @@ class Experimenter():
         for shots in shotsList:
             for rounds in roundsList:
                 customDecodersDict = None
-                if decoder == "union_find_decoder":
-                    customDecodersDict = {"union_find_decoder": UnionFindDecoder(codeType)}
+                if decoder == config.UNION_FIND_DECODER:
+                    customDecodersDict = {config.UNION_FIND_DECODER: UnionFindDecoder(codeType)}
 
                 rounds = int(rounds)
                 task = [
@@ -76,3 +78,13 @@ class Experimenter():
         runtime = collected_stats[0].seconds
 
         return error_rate, runtime
+    
+    def execExperimentFromRow(row : pd.Series):
+        return Experimenter.execExperiment(
+            [row["distance"]],
+            [row["shots"]],
+            [row["rounds"]],
+            row["code"],
+            row["decoder"],
+            row["noiseModel"]
+        )

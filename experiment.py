@@ -2,10 +2,11 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from experimental_setup import ExperimentGenerator, Experimenter, Plotter
+from experimental_setup import ExperimentGenerator, Experimenter, Plotter, config
 
-PROFILE_NAME = "mock"
-TEST_FILE = f"results/{PROFILE_NAME}.csv"
+PROFILE_NAME = "quick"
+TEST_DIR = "results"
+TEST_FILE = f"{TEST_DIR}/{PROFILE_NAME}.csv"
 
 ERROR_RATE_HEADER = "error_rate"
 RUNTIME_HEADER = "runtime [s]"
@@ -26,35 +27,36 @@ RUNTIME_HEADER = "runtime [s]"
 if __name__ == "__main__":
     if not os.path.exists(TEST_FILE):
         testFrame = ExperimentGenerator.generateDesign(roundsAsDistance=True, profile=PROFILE_NAME)
+        if not os.path.exists(TEST_DIR):
+            os.makedirs(TEST_DIR)
         ExperimentGenerator.saveDesign(testFrame, TEST_FILE)
 
     testFrame = ExperimentGenerator.loadDesign(TEST_FILE)
-    for index, row in testFrame.iterrows():
-        current_error_rate = row[ERROR_RATE_HEADER]
-        current_runtime = row[RUNTIME_HEADER]
 
-        if not pd.isna(current_error_rate) and not pd.isna(current_runtime):
+    # Experiments loop
+    for index, row in testFrame.iterrows():
+        # If both error rate and runtime are already calculated, skip this row
+        if not pd.isna(row[ERROR_RATE_HEADER]) and not pd.isna(row[RUNTIME_HEADER]):
             continue
 
-        error_rate, runtime = Experimenter.execExperiment(
-            [row["distance"]],
-            [row["shots"]],
-            [row["rounds"]],
-            row["code"],
-            row["decoder"],
-            row["noiseModel"]
-        )
+        error_rate, runtime = Experimenter.execExperimentFromRow(row)
 
-        print(f"Error rate: {error_rate}, Runtime: {runtime}")
+        # Save the results to the testFrame
         testFrame.at[index, ERROR_RATE_HEADER] = error_rate
         testFrame.at[index, RUNTIME_HEADER] = runtime
+
         ExperimentGenerator.saveDesign(testFrame, TEST_FILE, overwrite=True)
 
-    testFrame = ExperimentGenerator.loadDesign("results/mock.csv")
+    # Results plotting
+    testFrame = ExperimentGenerator.loadDesign(TEST_FILE)
     Plotter.plot(
         testFrame,
-        fixedSubjects = { "code": ["rotated"], "decoder": ["sparse_blossom"], "noiseModel": ["willow"] },
+        fixedSubjects = { 
+            "decoder": [config.SPARSE_BLOSSOM_DECODER], 
+            "noiseModel": [config.SI1000_004_NOISE_MODEL] },
         variableFactor = "distance",
-        responseVariable = ERROR_RATE_HEADER
+        variableSubject = "code",
+        responseVariable = ERROR_RATE_HEADER,
+        logScale = True
     )
     plt.show()

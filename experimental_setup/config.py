@@ -1,13 +1,23 @@
 import numpy as np
 
 # === Subject: Codes ===
-SUBJECT_CODES = [ "repetition", "unrotated", "rotated" ]
+REPETITION_CODE = "repetition"
+UNROTATED_SURFACE_CODE = "unrotated"
+ROTATED_SURFACE_CODE = "rotated"
+
+SUBJECT_CODES = [ REPETITION_CODE, UNROTATED_SURFACE_CODE, ROTATED_SURFACE_CODE ]
 
 # === Subject: Decoders ===
-SUBJECT_DECODERS = [ "sparse_blossom", "union_find" ]
+SPARSE_BLOSSOM_DECODER = "sparse_blossom"
+UNION_FIND_DECODER = "union_find"
+
+SUBJECT_DECODERS = [ SPARSE_BLOSSOM_DECODER, UNION_FIND_DECODER ]
 
 # === Subject: Noise Models ===
-SUBJECT_NOISE_MODELS = [ "si1000_004", "willow" ]
+SI1000_004_NOISE_MODEL = "si1000_004"
+WILLOW_NOISE_MODEL = "willow"
+
+SUBJECT_NOISE_MODELS = [ SI1000_004_NOISE_MODEL, WILLOW_NOISE_MODEL ]
 
 SUBJECTS = {
     "code" : SUBJECT_CODES,
@@ -15,13 +25,17 @@ SUBJECTS = {
     "noiseModel" : SUBJECT_NOISE_MODELS
 }
 
-SUBJECTS_QUICK = {
-    "code" : [ "rotated" ],
-    "decoder" : [ "sparse_blossom" ],
-    "noiseModel" : [ "willow" ]
+SUBJECTS_MOCK = {
+    "code" : [ ROTATED_SURFACE_CODE ],
+    "decoder" : [ SPARSE_BLOSSOM_DECODER ],
+    "noiseModel" : [ WILLOW_NOISE_MODEL ]
 }
 
-SUBJECTS_MOCK = SUBJECTS_QUICK
+SUBJECTS_QUICK = {
+    "code" : [ REPETITION_CODE, ROTATED_SURFACE_CODE ],
+    "decoder" : [ SPARSE_BLOSSOM_DECODER ],
+    "noiseModel" : SUBJECT_NOISE_MODELS
+}
 
 # === Repetitions ===
 
@@ -78,8 +92,10 @@ FACTORS_PRELIM_ROUNDS = {
 FACTORS_PRELIM_VARIANCE = {}
 
 # === Response Variables ===
+ERROR_RATE_RESPONSE_VARIABLE = "error_rate"
+RUNTIME_RESPONSE_VARIABLE = "runtime [s]"
 
-RESPONSE_VARIABLES = [ "error_rate", "runtime [s]" ]
+RESPONSE_VARIABLES = [ ERROR_RATE_RESPONSE_VARIABLE, RUNTIME_RESPONSE_VARIABLE ]
 
 profiles = {
     "mock": {
