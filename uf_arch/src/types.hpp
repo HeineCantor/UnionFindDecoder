@@ -5,6 +5,7 @@
 #include <tuple>
 
 enum class EdgeStatus {
+    PEELED = -1,
     UNGROWN = 0,
     HALF_GROWN = 1,
     GROWN = 2

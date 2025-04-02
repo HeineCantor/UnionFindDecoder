@@ -30,51 +30,68 @@ std::vector<Node> initNodes(Syndrome2D& syndrome_2d) {
     return nodes;
 }
 
+Syndrome2D generateRandomZSyndrome(int dx, int dy, float p = 0.1) {
+    Syndrome2D syndrome;
+    srand((unsigned)time(0)); 
+
+    std::vector<int> row;
+    for (int i = 0; i < 2*dx-1; ++i) {
+        for (int j = 0; j < dy - (1-i%2); ++j) {
+            if (i % 2 == 0) {
+                row.push_back(0);
+            } else {
+                if ((rand() % 101) < p*100) {
+                    row.push_back(1);
+                } else {
+                    row.push_back(0);
+                }
+            }
+
+        }
+        syndrome.push_back(row);
+        row.clear();
+    }
+
+    return syndrome;
+}
+
+EdgeSupport2D generateSupport(int dx, int dy) {
+    EdgeSupport2D edge_support;
+
+    for (int i = 0; i < 2*dx-1; ++i) {
+        std::vector<EdgeStatus> row;
+        for (int j = 0; j < dy - i%2; ++j) {
+            row.push_back(EdgeStatus::UNGROWN);
+        }
+        edge_support.push_back(row);
+    }
+
+    return edge_support;
+}
+
+const int TEST_DISTANCE = 5;
+
 int main() {
-    // 2D Syndrome Mock
-    Syndrome2D syndrome_2d = {
-         {0, 0},
-        {1, 0, 1},
-         {0, 0},
-        {0, 0, 0},
-         {0, 0}
-    };
+    // 2D Syndrome
+    Syndrome2D syndrome_2d = generateRandomZSyndrome(TEST_DISTANCE, TEST_DISTANCE, 0.1);
 
-    syndrome_2d = {
-         {0, 0, 0, 0},
-        {1, 0, 0, 0, 1},
-         {0, 0, 0, 0},
-        {0, 0, 0, 0, 0},
-         {0, 0, 0, 0},
-        {0, 0, 0, 0, 0},
-         {0, 0, 0, 0},
-        {0, 0, 1, 0, 1},
-         {0, 0, 0, 0},
-    };
-
-    // 2D Edge Support Mock (everything is UNGROWN)
-    EdgeSupport2D edge_support_2d = {
-        {EdgeStatus::UNGROWN, EdgeStatus::UNGROWN, EdgeStatus::UNGROWN},
-                {EdgeStatus::UNGROWN, EdgeStatus::UNGROWN},
-        {EdgeStatus::UNGROWN, EdgeStatus::UNGROWN, EdgeStatus::UNGROWN},
-                {EdgeStatus::UNGROWN, EdgeStatus::UNGROWN},
-        {EdgeStatus::UNGROWN, EdgeStatus::UNGROWN, EdgeStatus::UNGROWN}
-    };
-
-    edge_support_2d = {
-        {EdgeStatus::UNGROWN, EdgeStatus::UNGROWN, EdgeStatus::UNGROWN, EdgeStatus::UNGROWN, EdgeStatus::UNGROWN},
-                {EdgeStatus::UNGROWN, EdgeStatus::UNGROWN, EdgeStatus::UNGROWN, EdgeStatus::UNGROWN},
-        {EdgeStatus::UNGROWN, EdgeStatus::UNGROWN, EdgeStatus::UNGROWN, EdgeStatus::UNGROWN, EdgeStatus::UNGROWN},
-                {EdgeStatus::UNGROWN, EdgeStatus::UNGROWN, EdgeStatus::UNGROWN, EdgeStatus::UNGROWN},
-        {EdgeStatus::UNGROWN, EdgeStatus::UNGROWN, EdgeStatus::UNGROWN, EdgeStatus::UNGROWN, EdgeStatus::UNGROWN},
-                {EdgeStatus::UNGROWN, EdgeStatus::UNGROWN, EdgeStatus::UNGROWN, EdgeStatus::UNGROWN},
-        {EdgeStatus::UNGROWN, EdgeStatus::UNGROWN, EdgeStatus::UNGROWN, EdgeStatus::UNGROWN, EdgeStatus::UNGROWN},
-                {EdgeStatus::UNGROWN, EdgeStatus::UNGROWN, EdgeStatus::UNGROWN, EdgeStatus::UNGROWN},
-        {EdgeStatus::UNGROWN, EdgeStatus::UNGROWN, EdgeStatus::UNGROWN, EdgeStatus::UNGROWN, EdgeStatus::UNGROWN}
-    };
+    // 2D Edge Support
+    EdgeSupport2D edge_support_2d = generateSupport(TEST_DISTANCE, TEST_DISTANCE);
 
     // Initialize nodes from syndrome
     std::vector<Node> nodes = initNodes(syndrome_2d);
+
+    // Print the syndrome
+    std::cout << "Syndrome:" << std::endl;
+    for (std::size_t i = 0; i < syndrome_2d.size(); ++i) {
+        if (i%2 == 0)
+            std::cout << " ";
+        for (std::size_t j = 0; j < syndrome_2d[i].size(); ++j) {
+            std::cout << syndrome_2d[i][j] << " ";
+        }
+        std::cout << std::endl;
+    }
+    std::cout << std::endl;
 
     // Initialize cluster roots
     std::set<Node*> cluster_roots;
@@ -118,6 +135,7 @@ int main() {
             Node* node1 = nullptr;
             Node* node2 = nullptr;
 
+            // TODO: direct access instead of iterating
             for (auto& node : nodes) {
                 if (row % 2 == 1 && node.get_row() == row && node.get_col() == col) {
                     node1 = &node;
@@ -147,6 +165,7 @@ int main() {
                 } 
                 else {
                     // If they belong to the same cluster, just remove the edge (without creating loops)
+                    edge_support_2d[row][col] = EdgeStatus::PEELED;
                     node1->remove_boundary_edge(edge);
                 }
             }
@@ -182,22 +201,22 @@ int main() {
     }
 
     // Print the nodes and their syndromes
-    std::cout << "Clusters:" << std::endl;
-    for (auto& node : nodes) {
-        auto root = node.find();
+    // std::cout << "Clusters:" << std::endl;
+    // for (auto& node : nodes) {
+    //     auto root = node.find();
 
-        if (!root->syndrome_count)
-            continue;
+    //     if (!root->syndrome_count)
+    //         continue;
 
-        std::cout << "Node ID: (" << node.get_row() << ", " << node.get_col() << ") | Root ID: (" << root->get_row() << ", " << root->get_col() << ")";
-        std::cout << " | Syndrome Count: " << root->syndrome_count;
-        std::cout << " | On Border: " << (root->on_border ? "Yes" : "No");
-        // std::cout << " | Boundary Edges: ";
-        // for (const auto& edge : root->boundary) {
-        //     std::cout << "(" << std::get<0>(edge) << ", " << std::get<1>(edge) << ") ";
-        // }
-        std::cout << std::endl;
-    }
+    //     std::cout << "Node ID: (" << node.get_row() << ", " << node.get_col() << ") | Root ID: (" << root->get_row() << ", " << root->get_col() << ")";
+    //     std::cout << " | Syndrome Count: " << root->syndrome_count;
+    //     std::cout << " | On Border: " << (root->on_border ? "Yes" : "No");
+    //     // std::cout << " | Boundary Edges: ";
+    //     // for (const auto& edge : root->boundary) {
+    //     //     std::cout << "(" << std::get<0>(edge) << ", " << std::get<1>(edge) << ") ";
+    //     // }
+    //     std::cout << std::endl;
+    // }
 
     return 0;
 }
