@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <chrono>
 
 #include "node.hpp"
 #include "types.hpp"
@@ -69,9 +70,14 @@ EdgeSupport2D generateSupport(int dx, int dy) {
     return edge_support;
 }
 
-const int TEST_DISTANCE = 5;
+const int TEST_DISTANCE = 25;
 
 int main() {
+    using std::chrono::high_resolution_clock;
+    using std::chrono::duration_cast;
+    using std::chrono::duration;
+    using std::chrono::microseconds;
+
     // 2D Syndrome
     Syndrome2D syndrome_2d = generateRandomZSyndrome(TEST_DISTANCE, TEST_DISTANCE, 0.1);
 
@@ -102,9 +108,16 @@ int main() {
     // Initialize fusion edges (edges grown after a UF loop)
     std::vector<EdgeCoords> fusionEdges;
 
+    auto start = high_resolution_clock::now();
+
+    auto t1 = high_resolution_clock::now();
+    auto t2 = high_resolution_clock::now();
+    auto t3 = high_resolution_clock::now();
     while (cluster_roots.size() > 0)
     {
         auto size = cluster_roots.size();
+
+        t1 = high_resolution_clock::now();
         for (const auto& root : cluster_roots) {
             auto row = root->get_row();
             auto col = root->get_col();
@@ -127,6 +140,7 @@ int main() {
             }
         }
 
+        t2 = high_resolution_clock::now();
         for (const auto& edge : fusionEdges) {
             int row = std::get<0>(edge);
             int col = std::get<1>(edge);
@@ -179,16 +193,24 @@ int main() {
                     node2->find()->on_border = true;
                     cluster_roots.erase(node2->find());
                 }
-                
-                std::cout << "Code Border: " << row << "|" << col << std::endl;
             }
             else {
                 std::cerr << "Error: Edge not found in any node." << std::endl;
             }
         }
 
+        t3 = high_resolution_clock::now();
+
+        auto t2_1_duration = duration_cast<microseconds>(t2 - t1).count();
+        auto t3_2_duration = duration_cast<microseconds>(t3 - t2).count();
+
+        std::cout << "UF loop duration: " << t2_1_duration << " microseconds" << std::endl;
+        std::cout << "UF loop duration (fusion edges): " << t3_2_duration << " microseconds" << std::endl;
+
         fusionEdges.clear();
     }
+    auto end = high_resolution_clock::now();
+    auto us_duration = duration_cast<microseconds>(end - start).count();
 
     // Print the edge support status
     for (std::size_t i = 0; i < edge_support_2d.size(); ++i) {
@@ -218,5 +240,6 @@ int main() {
     //     std::cout << std::endl;
     // }
 
+    std::cout << "UF loop duration: " << us_duration << " microseconds" << std::endl;
     return 0;
 }
