@@ -170,6 +170,9 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
+# VS Code
+.vscode/
+
 # Personal
 .qsurftest
 pictures
@@ -178,3 +181,5 @@ test.py
 test.csv
 experimental_setup/results
 results
+uf_arch/obj
+uf_arch/bin
