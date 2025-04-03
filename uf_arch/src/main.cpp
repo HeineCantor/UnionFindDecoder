@@ -1,12 +1,17 @@
 #include <iostream>
 #include <vector>
 #include <chrono>
+#include <map>
 
 #include "node.hpp"
 #include "types.hpp"
 
-std::vector<Node> initNodes(Syndrome2D& syndrome_2d) {
-    std::vector<Node> nodes;
+// TODO: tutti questi metodi sono con l'assunto di unrotated code, ma 
+// deve esistere qualcosa di più generale che costruisce nodi e support
+// in base a un grafo di ingresso, che collega sindromi e data qubit.
+std::map<Coords2D, Node> initNodes(Syndrome2D& syndrome_2d)
+{
+    std::map<Coords2D, Node> nodes;
     
     for (std::size_t i = 0; i < syndrome_2d.size(); ++i) {
         for (std::size_t j = 0; j < syndrome_2d[i].size(); ++j) {
@@ -24,7 +29,7 @@ std::vector<Node> initNodes(Syndrome2D& syndrome_2d) {
             if (i < syndrome_2d.size() - 1)
                 node.add_boundary_edge(std::make_tuple(i + 1, j));
 
-            nodes.push_back(node);
+            nodes.insert({std::make_tuple(i, j), node});
         }
     }
 
@@ -70,7 +75,18 @@ EdgeSupport2D generateSupport(int dx, int dy) {
     return edge_support;
 }
 
-const int TEST_DISTANCE = 25;
+void printSyndrome(const Syndrome2D& syndrome) {
+    for (std::size_t i = 0; i < syndrome.size(); ++i) {
+        if (i%2 == 0)
+            std::cout << " ";
+        for (std::size_t j = 0; j < syndrome[i].size(); ++j) {
+            std::cout << syndrome[i][j] << " ";
+        }
+        std::cout << std::endl;
+    }
+}
+
+const int TEST_DISTANCE = 3;
 
 int main() {
     using std::chrono::high_resolution_clock;
@@ -85,39 +101,28 @@ int main() {
     EdgeSupport2D edge_support_2d = generateSupport(TEST_DISTANCE, TEST_DISTANCE);
 
     // Initialize nodes from syndrome
-    std::vector<Node> nodes = initNodes(syndrome_2d);
+    std::map<Coords2D, Node> nodeMap = initNodes(syndrome_2d);
 
     // Print the syndrome
-    std::cout << "Syndrome:" << std::endl;
-    for (std::size_t i = 0; i < syndrome_2d.size(); ++i) {
-        if (i%2 == 0)
-            std::cout << " ";
-        for (std::size_t j = 0; j < syndrome_2d[i].size(); ++j) {
-            std::cout << syndrome_2d[i][j] << " ";
-        }
-        std::cout << std::endl;
-    }
-    std::cout << std::endl;
+    printSyndrome(syndrome_2d);
 
     // Initialize cluster roots
     std::set<Node*> cluster_roots;
-    for (auto& node : nodes)
+    for (auto& pair : nodeMap)
+    {
+        auto& node = pair.second;
         if (node.is_syndrome)
             cluster_roots.insert(node.find());
+    }
 
     // Initialize fusion edges (edges grown after a UF loop)
-    std::vector<EdgeCoords> fusionEdges;
+    std::vector<Coords2D> fusionEdges;
 
     auto start = high_resolution_clock::now();
-
-    auto t1 = high_resolution_clock::now();
-    auto t2 = high_resolution_clock::now();
-    auto t3 = high_resolution_clock::now();
     while (cluster_roots.size() > 0)
     {
         auto size = cluster_roots.size();
 
-        t1 = high_resolution_clock::now();
         for (const auto& root : cluster_roots) {
             auto row = root->get_row();
             auto col = root->get_col();
@@ -140,7 +145,6 @@ int main() {
             }
         }
 
-        t2 = high_resolution_clock::now();
         for (const auto& edge : fusionEdges) {
             int row = std::get<0>(edge);
             int col = std::get<1>(edge);
@@ -149,22 +153,12 @@ int main() {
             Node* node1 = nullptr;
             Node* node2 = nullptr;
 
-            // TODO: direct access instead of iterating
-            for (auto& node : nodes) {
-                if (row % 2 == 1 && node.get_row() == row && node.get_col() == col) {
-                    node1 = &node;
-                }
-                else if (row % 2 == 1 && node.get_row() == row && node.get_col() == col + 1) {
-                    node2 = &node;
-                }
-                else if (row % 2 == 0 && node.get_row() == row - 1 && node.get_col() == col) {
-                    node1 = &node;
-                }
-                else if (row % 2 == 0 && node.get_row() == row + 1 && node.get_col() == col) {
-                    node2 = &node;
-                }
+            node1 = nodeMap.find(std::make_tuple(row, col)) != nodeMap.end() ? &nodeMap[std::make_tuple(row, col)] : nullptr;
+            node2 = nodeMap.find(std::make_tuple(row, col + 1)) != nodeMap.end() ? &nodeMap[std::make_tuple(row, col + 1)] : nullptr;
+            if (row % 2 == 0) {
+                node1 = nodeMap.find(std::make_tuple(row - 1, col)) != nodeMap.end() ? &nodeMap[std::make_tuple(row - 1, col)] : nullptr;
+                node2 = nodeMap.find(std::make_tuple(row + 1, col)) != nodeMap.end() ? &nodeMap[std::make_tuple(row + 1, col)] : nullptr;
             }
-
 
             if (node1 && node2) {
                 // Check if the nodes belong to different clusters
@@ -199,14 +193,6 @@ int main() {
             }
         }
 
-        t3 = high_resolution_clock::now();
-
-        auto t2_1_duration = duration_cast<microseconds>(t2 - t1).count();
-        auto t3_2_duration = duration_cast<microseconds>(t3 - t2).count();
-
-        std::cout << "UF loop duration: " << t2_1_duration << " microseconds" << std::endl;
-        std::cout << "UF loop duration (fusion edges): " << t3_2_duration << " microseconds" << std::endl;
-
         fusionEdges.clear();
     }
     auto end = high_resolution_clock::now();
@@ -221,24 +207,6 @@ int main() {
         }
         std::cout << std::endl;
     }
-
-    // Print the nodes and their syndromes
-    // std::cout << "Clusters:" << std::endl;
-    // for (auto& node : nodes) {
-    //     auto root = node.find();
-
-    //     if (!root->syndrome_count)
-    //         continue;
-
-    //     std::cout << "Node ID: (" << node.get_row() << ", " << node.get_col() << ") | Root ID: (" << root->get_row() << ", " << root->get_col() << ")";
-    //     std::cout << " | Syndrome Count: " << root->syndrome_count;
-    //     std::cout << " | On Border: " << (root->on_border ? "Yes" : "No");
-    //     // std::cout << " | Boundary Edges: ";
-    //     // for (const auto& edge : root->boundary) {
-    //     //     std::cout << "(" << std::get<0>(edge) << ", " << std::get<1>(edge) << ") ";
-    //     // }
-    //     std::cout << std::endl;
-    // }
 
     std::cout << "UF loop duration: " << us_duration << " microseconds" << std::endl;
     return 0;

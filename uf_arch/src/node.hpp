@@ -9,6 +9,7 @@
 
 class Node {
 public:
+    Node() : row(0), col(0), parent(nullptr) {};
     Node(int row, int col, Node* parent_id = nullptr) : row(row), col(col), parent(parent_id) {}
 
     Node* find(){
@@ -41,8 +42,8 @@ public:
     int get_col() const { return col; }
 
     void set_parent(Node* new_parent) { parent = new_parent; }
-    void add_boundary_edge(EdgeCoords edge) { boundary.insert(edge); }
-    void remove_boundary_edge(EdgeCoords edge) {
+    void add_boundary_edge(Coords2D edge) { boundary.insert(edge); }
+    void remove_boundary_edge(Coords2D edge) {
         this->find()->boundary.erase(edge);
     }
 
@@ -50,7 +51,7 @@ public:
     bool is_syndrome = false; // True if the node is a syndrome
     bool parity = false; // Parity of the cluster
     int syndrome_count = 0; // Number of syndromes in the cluster
-    std::set<EdgeCoords> boundary;
+    std::set<Coords2D> boundary;
 
 private:
     int row, col;                

@@ -13,6 +13,6 @@ enum class EdgeStatus {
 
 typedef std::vector<std::vector<int>> Syndrome2D;
 typedef std::vector<std::vector<EdgeStatus>> EdgeSupport2D;
-typedef std::tuple<int, int> EdgeCoords;
+typedef std::tuple<int, int> Coords2D;
 
 #endif
