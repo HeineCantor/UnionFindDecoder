@@ -1,213 +1,140 @@
 #include <iostream>
-#include <vector>
-#include <chrono>
-#include <map>
 
-#include "node.hpp"
 #include "types.hpp"
+#include "config.hpp"
 
-// TODO: tutti questi metodi sono con l'assunto di unrotated code, ma 
-// deve esistere qualcosa di più generale che costruisce nodi e support
-// in base a un grafo di ingresso, che collega sindromi e data qubit.
-std::map<Coords2D, Node> initNodes(Syndrome2D& syndrome_2d)
+// TODO: rounds
+// TODO: adapt to multiple types of code
+Node nodes[config::NODES_ROWS][config::NODES_COLS];
+Edge edge_support[config::EDGES_ROWS][config::EDGES_COLS];
+
+void init_clusters(std::vector<bool>& syndromes)
 {
-    std::map<Coords2D, Node> nodes;
-    
-    for (std::size_t i = 0; i < syndrome_2d.size(); ++i) {
-        for (std::size_t j = 0; j < syndrome_2d[i].size(); ++j) {
-            Node node(i, j);
-            
-            node.is_syndrome = syndrome_2d[i][j] == 1;
-            node.syndrome_count = syndrome_2d[i][j];
-
-            if (j >= 1)
-                node.add_boundary_edge(std::make_tuple(i, j - 1));
-            if (j < syndrome_2d[i].size() - 1)
-                node.add_boundary_edge(std::make_tuple(i, j));
-            if (i > 0)
-                node.add_boundary_edge(std::make_tuple(i - 1, j));
-            if (i < syndrome_2d.size() - 1)
-                node.add_boundary_edge(std::make_tuple(i + 1, j));
-
-            nodes.insert({std::make_tuple(i, j), node});
-        }
-    }
-
-    return nodes;
-}
-
-Syndrome2D generateRandomZSyndrome(int dx, int dy, float p = 0.1) {
-    Syndrome2D syndrome;
-    srand((unsigned)time(0)); 
-
-    std::vector<int> row;
-    for (int i = 0; i < 2*dx-1; ++i) {
-        for (int j = 0; j < dy - (1-i%2); ++j) {
-            if (i % 2 == 0) {
-                row.push_back(0);
-            } else {
-                if ((rand() % 101) < p*100) {
-                    row.push_back(1);
-                } else {
-                    row.push_back(0);
-                }
-            }
-
-        }
-        syndrome.push_back(row);
-        row.clear();
-    }
-
-    return syndrome;
-}
-
-EdgeSupport2D generateSupport(int dx, int dy) {
-    EdgeSupport2D edge_support;
-
-    for (int i = 0; i < 2*dx-1; ++i) {
-        std::vector<EdgeStatus> row;
-        for (int j = 0; j < dy - i%2; ++j) {
-            row.push_back(EdgeStatus::UNGROWN);
-        }
-        edge_support.push_back(row);
-    }
-
-    return edge_support;
-}
-
-void printSyndrome(const Syndrome2D& syndrome) {
-    for (std::size_t i = 0; i < syndrome.size(); ++i) {
-        if (i%2 == 0)
-            std::cout << " ";
-        for (std::size_t j = 0; j < syndrome[i].size(); ++j) {
-            std::cout << syndrome[i][j] << " ";
-        }
-        std::cout << std::endl;
-    }
-}
-
-const int TEST_DISTANCE = 3;
-
-int main() {
-    using std::chrono::high_resolution_clock;
-    using std::chrono::duration_cast;
-    using std::chrono::duration;
-    using std::chrono::microseconds;
-
-    // 2D Syndrome
-    Syndrome2D syndrome_2d = generateRandomZSyndrome(TEST_DISTANCE, TEST_DISTANCE, 0.1);
-
-    // 2D Edge Support
-    EdgeSupport2D edge_support_2d = generateSupport(TEST_DISTANCE, TEST_DISTANCE);
-
-    // Initialize nodes from syndrome
-    std::map<Coords2D, Node> nodeMap = initNodes(syndrome_2d);
-
-    // Print the syndrome
-    printSyndrome(syndrome_2d);
-
-    // Initialize cluster roots
-    std::set<Node*> cluster_roots;
-    for (auto& pair : nodeMap)
+    for (size_t i = 0; i < syndromes.size(); i++)
     {
-        auto& node = pair.second;
-        if (node.is_syndrome)
-            cluster_roots.insert(node.find());
+        auto nodeRow = i / config::NODES_COLS;
+        auto nodeCol = i % config::NODES_COLS;
+
+        nodes[nodeRow][nodeCol].id = i;
+        nodes[nodeRow][nodeCol].root_id = i;
+        nodes[nodeRow][nodeCol].syndrome = syndromes[i];
+        nodes[nodeRow][nodeCol].ancilla_count = 1;
+        nodes[nodeRow][nodeCol].syndrome_count = syndromes[i] ? 1 : 0;
+        nodes[nodeRow][nodeCol].on_border = false;
+
+        nodes[nodeRow][nodeCol].boundary.clear();
+
+        auto edgeRow = nodeRow;
+        auto edgeCol = nodeCol;
+
+        // Bottom edges
+        if (nodeRow < config::NODES_ROWS - 1)
+        {
+            // Bottom left
+            if (nodeRow % 2 == 1)
+                edgeCol++;
+
+            edge_support[edgeRow][edgeCol].state = UNGROWN;
+            edge_support[edgeRow][edgeCol].nodeA_id = nodes[nodeRow][nodeCol].id;
+            if (nodeRow % 2 == 0 && nodeCol == 0)
+                edge_support[edgeRow][edgeCol].nodeB_id = BORDER_ID;
+            nodes[nodeRow][nodeCol].boundary.push_back(&edge_support[edgeRow][edgeCol]);
+
+            // Bottom right
+            edgeCol++;
+
+            edge_support[edgeRow][edgeCol].state = UNGROWN;
+            edge_support[edgeRow][edgeCol].nodeA_id = nodes[nodeRow][nodeCol].id;
+            if (nodeRow % 2 == 1 && nodeCol == config::NODES_COLS - 1)
+                edge_support[edgeRow][edgeCol].nodeB_id = BORDER_ID;
+            nodes[nodeRow][nodeCol].boundary.push_back(&edge_support[edgeRow][edgeCol]);
+        }
+
+
+        edgeRow = nodeRow - 1;
+        edgeCol = nodeCol + 1;
+
+        // Top edges
+        if (nodeRow > 0)
+        {
+            // Top left
+            if (nodeRow % 2 == 0)
+                edgeCol--;
+
+            edge_support[edgeRow][edgeCol].state = UNGROWN;
+            edge_support[edgeRow][edgeCol].nodeB_id = nodes[nodeRow][nodeCol].id;
+            if (nodeRow % 2 == 0 && nodeCol == 0)
+                edge_support[edgeRow][edgeCol].nodeA_id = BORDER_ID;
+            nodes[nodeRow][nodeCol].boundary.push_back(&edge_support[edgeRow][edgeCol]);
+
+            // Top right
+            edgeCol++;
+
+            edge_support[edgeRow][edgeCol].state = UNGROWN;
+            edge_support[edgeRow][edgeCol].nodeB_id = nodes[nodeRow][nodeCol].id;
+            if (nodeRow % 2 == 1 && nodeCol == config::NODES_COLS - 1)
+                edge_support[edgeRow][edgeCol].nodeA_id = BORDER_ID;
+            nodes[nodeRow][nodeCol].boundary.push_back(&edge_support[edgeRow][edgeCol]);
+        }
     }
+}
 
-    // Initialize fusion edges (edges grown after a UF loop)
-    std::vector<Coords2D> fusionEdges;
-
-    auto start = high_resolution_clock::now();
-    while (cluster_roots.size() > 0)
+void print_supports()
+{
+    // Print the nodes
+    std::cout << "Syndromes: " << std::endl;
+    for (int i = 0; i < config::NODES_ROWS; i++)
     {
-        auto size = cluster_roots.size();
-
-        for (const auto& root : cluster_roots) {
-            auto row = root->get_row();
-            auto col = root->get_col();
-
-            if (row % 2 == 0) // Skip even rows (only Z Syndromes)
-                continue; 
-
-            for (auto& boundary : root->boundary)
+        for (int j = 0; j < config::NODES_COLS; j++)
+        {
+            // Print full node
+            std::cout << "Node " << nodes[i][j].id << ": ";
+            std::cout << "Root ID: " << nodes[i][j].root_id << ", ";
+            std::cout << "Syndrome: " << (nodes[i][j].syndrome ? "true" : "false") << ", ";
+            std::cout << "Ancilla count: " << nodes[i][j].ancilla_count << ", ";
+            std::cout << "Syndrome count: " << nodes[i][j].syndrome_count << ", ";
+            std::cout << "On border: " << (nodes[i][j].on_border ? "true" : "false") << ", ";
+            std::cout << "Boundary: ";
+            for (auto& edge : nodes[i][j].boundary)
             {
-                auto boundaryRow = std::get<0>(boundary);
-                auto boundaryCol = std::get<1>(boundary);
-
-                if (edge_support_2d[boundaryRow][boundaryCol] != EdgeStatus::GROWN)
-                {
-                    edge_support_2d[boundaryRow][boundaryCol] = static_cast<EdgeStatus>(static_cast<int>(edge_support_2d[boundaryRow][boundaryCol]) + 1);
-                    
-                    if (edge_support_2d[boundaryRow][boundaryCol] == EdgeStatus::GROWN)
-                        fusionEdges.push_back(std::make_tuple(boundaryRow, boundaryCol));
-                }
+                std::cout << "Edge (" << edge->nodeA_id << ", " << edge->nodeB_id << ") ";
             }
-        }
-
-        for (const auto& edge : fusionEdges) {
-            int row = std::get<0>(edge);
-            int col = std::get<1>(edge);
-
-            // Find the nodes connected by this edge
-            Node* node1 = nullptr;
-            Node* node2 = nullptr;
-
-            node1 = nodeMap.find(std::make_tuple(row, col)) != nodeMap.end() ? &nodeMap[std::make_tuple(row, col)] : nullptr;
-            node2 = nodeMap.find(std::make_tuple(row, col + 1)) != nodeMap.end() ? &nodeMap[std::make_tuple(row, col + 1)] : nullptr;
-            if (row % 2 == 0) {
-                node1 = nodeMap.find(std::make_tuple(row - 1, col)) != nodeMap.end() ? &nodeMap[std::make_tuple(row - 1, col)] : nullptr;
-                node2 = nodeMap.find(std::make_tuple(row + 1, col)) != nodeMap.end() ? &nodeMap[std::make_tuple(row + 1, col)] : nullptr;
-            }
-
-            if (node1 && node2) {
-                // Check if the nodes belong to different clusters
-                // If they do, merge the clusters
-                if (node1->find() != node2->find()) {
-                    cluster_roots.erase(node2->find());
-                    if (node1->cluster_union(node2)) 
-                        cluster_roots.erase(node1->find());
-                    else if (!node1->find()->on_border)
-                        cluster_roots.insert(node1->find());
-                    node1->remove_boundary_edge(edge);
-                } 
-                else {
-                    // If they belong to the same cluster, just remove the edge (without creating loops)
-                    edge_support_2d[row][col] = EdgeStatus::PEELED;
-                    node1->remove_boundary_edge(edge);
-                }
-            }
-            else if (node1 || node2) {
-                // If one of the nodes is not found, it means the edge is on the code border
-                if (node1) {
-                    node1->find()->on_border = true;
-                    cluster_roots.erase(node1->find());
-                }
-                else if (node2) {
-                    node2->find()->on_border = true;
-                    cluster_roots.erase(node2->find());
-                }
-            }
-            else {
-                std::cerr << "Error: Edge not found in any node." << std::endl;
-            }
-        }
-
-        fusionEdges.clear();
-    }
-    auto end = high_resolution_clock::now();
-    auto us_duration = duration_cast<microseconds>(end - start).count();
-
-    // Print the edge support status
-    for (std::size_t i = 0; i < edge_support_2d.size(); ++i) {
-        if (i%2 == 1)
-            std::cout << " ";
-        for (std::size_t j = 0; j < edge_support_2d[i].size(); ++j) {
-            std::cout << static_cast<int>(edge_support_2d[i][j]) << " ";
+            std::cout << std::endl;
         }
         std::cout << std::endl;
     }
 
-    std::cout << "UF loop duration: " << us_duration << " microseconds" << std::endl;
+    // Print the edges
+    std::cout << "Edges: " << std::endl;
+    for (int i = 0; i < config::EDGES_ROWS; i++)
+    {
+        for (int j = 0; j < config::EDGES_COLS; j++)
+        {
+            // Print full edge
+            std::cout << "Edge (" << edge_support[i][j].nodeA_id << ", " << edge_support[i][j].nodeB_id << "): ";
+            std::cout << "State: " << edge_support[i][j].state << std::endl;
+        }
+    }
+    std::cout << std::endl;
+}
+
+int main()
+{
+    std::cout << "Code type: " << (config::CODE_TYPE == config::UNROTATED ? "Unrotated" :
+        config::CODE_TYPE == config::ROTATED ? "Rotated" :
+        config::CODE_TYPE == config::REPETITION ? "Repetition" : "Unknown") << std::endl;
+    std::cout << "Code distance: " << config::CODE_DISTANCE << std::endl;
+
+    std::cout << "Nodes: " << config::NODES_ROWS << " x " << config::NODES_COLS << std::endl;
+    std::cout << "Edges: " << config::EDGES_ROWS << " x " << config::EDGES_COLS << std::endl;
+
+    // Testing
+    std::vector<bool> syndromes = std::vector<bool>(config::NODES_COLS * config::NODES_ROWS, false);
+    syndromes[2] = true;
+
+    init_clusters(syndromes);
+
+    print_supports();
+
     return 0;
 }
