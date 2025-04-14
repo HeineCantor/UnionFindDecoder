@@ -4,10 +4,10 @@
 #include <vector>
 #include <tuple>
 
-#define BORDER_ID std::make_tuple(-1, -1)
-#define INVALID_ID std::make_tuple(-2, -2)
+#define BORDER_ID std::make_tuple(-1, -1, -1)
+#define INVALID_ID std::make_tuple(-2, -2, -2)
 
-typedef std::tuple<int, int> Coords2D;
+typedef std::tuple<int, int, int> Coords3D;
 
 enum EdgeState {
     UNGROWN = 0,
@@ -21,13 +21,13 @@ enum EdgeState {
 struct Edge {
     EdgeState state;
 
-    Coords2D nodeA_coords = INVALID_ID;
-    Coords2D nodeB_coords = INVALID_ID;
+    Coords3D nodeA_coords = INVALID_ID;
+    Coords3D nodeB_coords = INVALID_ID;
 };
 
 struct Node {
-    Coords2D coords;
-    Coords2D root_coords;
+    Coords3D coords;
+    Coords3D root_coords;
     bool syndrome;
     unsigned int ancilla_count;
     unsigned int syndrome_count; 

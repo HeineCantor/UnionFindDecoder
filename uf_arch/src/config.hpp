@@ -13,6 +13,9 @@ namespace config {
     // Code distance
     const int CODE_DISTANCE = 5;
 
+    // Rounds
+    const int ROUNDS = CODE_DISTANCE;
+
     // Code type
     const CodeType CODE_TYPE = ROTATED;
 
