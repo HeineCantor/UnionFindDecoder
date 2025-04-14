@@ -144,6 +144,8 @@ void merge(Edge* edge)
             rootA->boundary.insert(rootA->boundary.end(), rootB->boundary.begin(), rootB->boundary.end());
             rootA->on_border |= rootB->on_border;
 
+            odd_clusters.erase(std::remove(odd_clusters.begin(), odd_clusters.end(), rootB), odd_clusters.end());
+
             if (rootA->syndrome_count % 2 == 0 || rootA->on_border)
                 odd_clusters.erase(std::remove(odd_clusters.begin(), odd_clusters.end(), rootA), odd_clusters.end());
         }
@@ -192,14 +194,26 @@ int main()
     std::cout << "Edges: " << config::EDGES_ROWS << " x " << config::EDGES_COLS << std::endl;
 
     // Testing
-    std::vector<bool> syndromes = std::vector<bool>(config::NODES_COLS * config::NODES_ROWS, false);
-    syndromes[2] = true;
+    auto syndromes = generate_random_syndrome(config::NODES_COLS * config::NODES_ROWS, 0.1);
+    // syndromes = std::vector<bool>(config::NODES_COLS * config::NODES_ROWS, false);
+    // syndromes[9] = true;
+    // syndromes[11] = true;
 
+    std::cout << "Syndromes: ";
+    for (auto s : syndromes)
+        std::cout << (s ? "1" : "0");
+    std::cout << std::endl;
+
+    auto start = std::chrono::high_resolution_clock::now();
     init_clusters(syndromes);
     grow();
-
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    
     //print_supports(nodes, edge_support);
     print_edge_support_matrix(edge_support);
+
+    std::cout << "Time taken: " << duration << " microseconds" << std::endl;
 
     return 0;
 }

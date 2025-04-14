@@ -2,6 +2,7 @@
 #define _UTILS_HPP_
 
 #include <iostream>
+#include <vector>
 
 #include "types.hpp"
 #include "config.hpp"
@@ -76,6 +77,18 @@ void print_edge_support_matrix(Edge edge_support[config::EDGES_ROWS][config::EDG
         }
         std::cout << std::endl;
     }
+}
+
+std::vector<bool> generate_random_syndrome(int size, float probability)
+{
+    srand(static_cast<unsigned int>(time(0)));
+
+    std::vector<bool> syndrome(size);
+    for (int i = 0; i < size; i++)
+    {
+        syndrome[i] = (rand() / (float)RAND_MAX) < probability;
+    }
+    return syndrome;
 }
 
 #endif

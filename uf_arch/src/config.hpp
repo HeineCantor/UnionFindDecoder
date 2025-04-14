@@ -11,7 +11,7 @@ namespace config {
     };
 
     // Code distance
-    const int CODE_DISTANCE = 9;
+    const int CODE_DISTANCE = 5;
 
     // Code type
     const CodeType CODE_TYPE = ROTATED;
