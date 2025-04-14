@@ -2,9 +2,12 @@
 #define _TYPES_HPP_
 
 #include <vector>
+#include <tuple>
 
-#define BORDER_ID -1
-#define INVALID_ID -2
+#define BORDER_ID std::make_tuple(-1, -1)
+#define INVALID_ID std::make_tuple(-2, -2)
+
+typedef std::tuple<int, int> Coords2D;
 
 enum EdgeState {
     UNGROWN = 0,
@@ -18,13 +21,13 @@ enum EdgeState {
 struct Edge {
     EdgeState state;
 
-    int nodeA_id = INVALID_ID;
-    int nodeB_id = INVALID_ID;
+    Coords2D nodeA_coords = INVALID_ID;
+    Coords2D nodeB_coords = INVALID_ID;
 };
 
 struct Node {
-    int id;
-    int root_id;
+    Coords2D coords;
+    Coords2D root_coords;
     bool syndrome;
     unsigned int ancilla_count;
     unsigned int syndrome_count; 

@@ -1,13 +1,20 @@
 #include <iostream>
+#include <vector>
+#include <chrono>
+#include <algorithm>
 
 #include "types.hpp"
 #include "config.hpp"
+#include "utils.hpp"
 
 // TODO: rounds
 // TODO: adapt to multiple types of code
 Node nodes[config::NODES_ROWS][config::NODES_COLS];
 Edge edge_support[config::EDGES_ROWS][config::EDGES_COLS];
 
+std::vector<Node*> odd_clusters;
+
+// TODO: erasure init
 void init_clusters(std::vector<bool>& syndromes)
 {
     for (size_t i = 0; i < syndromes.size(); i++)
@@ -15,8 +22,8 @@ void init_clusters(std::vector<bool>& syndromes)
         auto nodeRow = i / config::NODES_COLS;
         auto nodeCol = i % config::NODES_COLS;
 
-        nodes[nodeRow][nodeCol].id = i;
-        nodes[nodeRow][nodeCol].root_id = i;
+        nodes[nodeRow][nodeCol].coords = std::make_tuple(nodeRow, nodeCol);
+        nodes[nodeRow][nodeCol].root_coords = std::make_tuple(nodeRow, nodeCol);
         nodes[nodeRow][nodeCol].syndrome = syndromes[i];
         nodes[nodeRow][nodeCol].ancilla_count = 1;
         nodes[nodeRow][nodeCol].syndrome_count = syndromes[i] ? 1 : 0;
@@ -24,8 +31,11 @@ void init_clusters(std::vector<bool>& syndromes)
 
         nodes[nodeRow][nodeCol].boundary.clear();
 
+        if (syndromes[i])
+            odd_clusters.push_back(&nodes[nodeRow][nodeCol]);
+
         auto edgeRow = nodeRow;
-        auto edgeCol = nodeCol;
+        auto edgeCol = 2*nodeCol;
 
         // Bottom edges
         if (nodeRow < config::NODES_ROWS - 1)
@@ -35,87 +45,140 @@ void init_clusters(std::vector<bool>& syndromes)
                 edgeCol++;
 
             edge_support[edgeRow][edgeCol].state = UNGROWN;
-            edge_support[edgeRow][edgeCol].nodeA_id = nodes[nodeRow][nodeCol].id;
+            edge_support[edgeRow][edgeCol].nodeA_coords = nodes[nodeRow][nodeCol].coords;
             if (nodeRow % 2 == 0 && nodeCol == 0)
-                edge_support[edgeRow][edgeCol].nodeB_id = BORDER_ID;
+                edge_support[edgeRow][edgeCol].nodeB_coords = BORDER_ID;
             nodes[nodeRow][nodeCol].boundary.push_back(&edge_support[edgeRow][edgeCol]);
 
             // Bottom right
             edgeCol++;
 
             edge_support[edgeRow][edgeCol].state = UNGROWN;
-            edge_support[edgeRow][edgeCol].nodeA_id = nodes[nodeRow][nodeCol].id;
+            edge_support[edgeRow][edgeCol].nodeA_coords = nodes[nodeRow][nodeCol].coords;
             if (nodeRow % 2 == 1 && nodeCol == config::NODES_COLS - 1)
-                edge_support[edgeRow][edgeCol].nodeB_id = BORDER_ID;
+                edge_support[edgeRow][edgeCol].nodeB_coords = BORDER_ID;
             nodes[nodeRow][nodeCol].boundary.push_back(&edge_support[edgeRow][edgeCol]);
         }
 
 
         edgeRow = nodeRow - 1;
-        edgeCol = nodeCol + 1;
+        edgeCol = 2*nodeCol;
 
         // Top edges
         if (nodeRow > 0)
         {
             // Top left
-            if (nodeRow % 2 == 0)
-                edgeCol--;
+            if (nodeRow % 2 == 1)
+                edgeCol++;
 
             edge_support[edgeRow][edgeCol].state = UNGROWN;
-            edge_support[edgeRow][edgeCol].nodeB_id = nodes[nodeRow][nodeCol].id;
+            edge_support[edgeRow][edgeCol].nodeB_coords = nodes[nodeRow][nodeCol].coords;
             if (nodeRow % 2 == 0 && nodeCol == 0)
-                edge_support[edgeRow][edgeCol].nodeA_id = BORDER_ID;
+                edge_support[edgeRow][edgeCol].nodeA_coords = BORDER_ID;
             nodes[nodeRow][nodeCol].boundary.push_back(&edge_support[edgeRow][edgeCol]);
 
             // Top right
             edgeCol++;
 
             edge_support[edgeRow][edgeCol].state = UNGROWN;
-            edge_support[edgeRow][edgeCol].nodeB_id = nodes[nodeRow][nodeCol].id;
+            edge_support[edgeRow][edgeCol].nodeB_coords = nodes[nodeRow][nodeCol].coords;
             if (nodeRow % 2 == 1 && nodeCol == config::NODES_COLS - 1)
-                edge_support[edgeRow][edgeCol].nodeA_id = BORDER_ID;
+                edge_support[edgeRow][edgeCol].nodeA_coords = BORDER_ID;
             nodes[nodeRow][nodeCol].boundary.push_back(&edge_support[edgeRow][edgeCol]);
         }
     }
 }
 
-void print_supports()
+Node* find(Node* node)
 {
-    // Print the nodes
-    std::cout << "Syndromes: " << std::endl;
-    for (int i = 0; i < config::NODES_ROWS; i++)
-    {
-        for (int j = 0; j < config::NODES_COLS; j++)
-        {
-            // Print full node
-            std::cout << "Node " << nodes[i][j].id << ": ";
-            std::cout << "Root ID: " << nodes[i][j].root_id << ", ";
-            std::cout << "Syndrome: " << (nodes[i][j].syndrome ? "true" : "false") << ", ";
-            std::cout << "Ancilla count: " << nodes[i][j].ancilla_count << ", ";
-            std::cout << "Syndrome count: " << nodes[i][j].syndrome_count << ", ";
-            std::cout << "On border: " << (nodes[i][j].on_border ? "true" : "false") << ", ";
-            std::cout << "Boundary: ";
-            for (auto& edge : nodes[i][j].boundary)
-            {
-                std::cout << "Edge (" << edge->nodeA_id << ", " << edge->nodeB_id << ") ";
-            }
-            std::cout << std::endl;
-        }
-        std::cout << std::endl;
-    }
+    auto rowCoord = std::get<0>(node->coords);
+    auto colCoord = std::get<1>(node->coords);
 
-    // Print the edges
-    std::cout << "Edges: " << std::endl;
-    for (int i = 0; i < config::EDGES_ROWS; i++)
+    auto rootRowCoord = std::get<0>(node->root_coords);
+    auto rootColCoord = std::get<1>(node->root_coords);
+
+    if (rowCoord != rootRowCoord || colCoord != rootColCoord)
+        node->root_coords = find(&nodes[rootRowCoord][rootColCoord])->root_coords;
+
+    rootRowCoord = std::get<0>(node->root_coords);
+    rootColCoord = std::get<1>(node->root_coords);
+
+    return &nodes[rootRowCoord][rootColCoord];
+}
+
+void merge(Edge* edge)
+{
+    Node* rootA;
+    Node* rootB;
+
+    if (edge->nodeA_coords == BORDER_ID)
     {
-        for (int j = 0; j < config::EDGES_COLS; j++)
-        {
-            // Print full edge
-            std::cout << "Edge (" << edge_support[i][j].nodeA_id << ", " << edge_support[i][j].nodeB_id << "): ";
-            std::cout << "State: " << edge_support[i][j].state << std::endl;
-        }
+        rootB = find(&nodes[std::get<0>(edge->nodeB_coords)][std::get<1>(edge->nodeB_coords)]);
+
+        rootB->on_border = true;
+        odd_clusters.erase(std::remove(odd_clusters.begin(), odd_clusters.end(), rootB), odd_clusters.end());
     }
-    std::cout << std::endl;
+    else if (edge->nodeB_coords == BORDER_ID)
+    {
+        rootA = find(&nodes[std::get<0>(edge->nodeA_coords)][std::get<1>(edge->nodeA_coords)]);
+
+        rootA->on_border = true;
+        odd_clusters.erase(std::remove(odd_clusters.begin(), odd_clusters.end(), rootA), odd_clusters.end());
+    }
+    else
+    {
+        rootA = find(&nodes[std::get<0>(edge->nodeA_coords)][std::get<1>(edge->nodeA_coords)]);
+        rootB = find(&nodes[std::get<0>(edge->nodeB_coords)][std::get<1>(edge->nodeB_coords)]);
+
+        rootA->boundary.erase(std::remove(rootA->boundary.begin(), rootA->boundary.end(), edge), rootA->boundary.end());
+        rootB->boundary.erase(std::remove(rootB->boundary.begin(), rootB->boundary.end(), edge), rootB->boundary.end());
+
+        if (rootA != rootB)
+        {
+            if (rootA->ancilla_count < rootB->ancilla_count)
+                std::swap(rootA, rootB);
+    
+            rootB->root_coords = rootA->root_coords;
+            rootA->syndrome_count += rootB->syndrome_count;
+            rootA->ancilla_count += rootB->ancilla_count;
+            rootA->boundary.insert(rootA->boundary.end(), rootB->boundary.begin(), rootB->boundary.end());
+            rootA->on_border |= rootB->on_border;
+
+            if (rootA->syndrome_count % 2 == 0 || rootA->on_border)
+                odd_clusters.erase(std::remove(odd_clusters.begin(), odd_clusters.end(), rootA), odd_clusters.end());
+        }
+        else // Dynamically removing cycles
+        {
+            edge->state = PEELED;
+        }
+    }   
+}
+
+std::vector<Edge*> union_list;
+
+void grow()
+{
+    while (odd_clusters.size())
+    {
+        union_list.clear();
+
+        for (auto cluster : odd_clusters)
+        {
+            for (auto edge : cluster->boundary)
+            {
+                if (edge->state != GROWN)
+                {
+                    edge->state = static_cast<EdgeState>(static_cast<int>(edge->state) + 1);
+
+                    if (edge->state == GROWN)
+                        union_list.push_back(edge);
+                }
+            }
+        }
+
+        for (auto& edge : union_list)
+            merge(edge);
+    }
 }
 
 int main()
@@ -133,8 +196,10 @@ int main()
     syndromes[2] = true;
 
     init_clusters(syndromes);
+    grow();
 
-    print_supports();
+    //print_supports(nodes, edge_support);
+    print_edge_support_matrix(edge_support);
 
     return 0;
 }
