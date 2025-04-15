@@ -227,7 +227,7 @@ void merge(Edge* edge)
             else
                 odd_clusters.insert(rootA);
         }
-        else // Dynamically removing cycles
+        else if (config::DYNAMIC_CYCLE_PEEL) // Dynamically removing cycles
         {
             edge->state = PEELED;
         }

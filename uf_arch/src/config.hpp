@@ -10,13 +10,8 @@ namespace config {
         REPETITION
     };
 
-    // Code distance
     const int CODE_DISTANCE = 5;
-
-    // Rounds
     const int ROUNDS = CODE_DISTANCE;
-
-    // Code type
     const CodeType CODE_TYPE = ROTATED;
 
     const int NODES_ROWS = CODE_TYPE == UNROTATED ? CODE_DISTANCE
@@ -38,6 +33,9 @@ namespace config {
         : CODE_TYPE == ROTATED ? CODE_DISTANCE
         : CODE_TYPE == REPETITION ? CODE_DISTANCE
         : 0;
+
+    // If true, the algorithm will remove cycles dynamically in the merge step, if a merge of a cluster with itself is detected.
+    const bool DYNAMIC_CYCLE_PEEL = true;
 }
 
 #endif
