@@ -15,15 +15,29 @@ Edge vertical_edge_support[config::ROUNDS][config::NODES_ROWS][config::NODES_COL
 std::set<Node*> odd_clusters;
 std::vector<Edge*> union_list;
 
-// TODO: erasure init
+/*
+    The init_clusters function initializes the union-find data structure
+    for the given syndromes. It sets up the nodes and edges, and populates
+    the odd clusters with the initial syndromes.
+
+    TODO: erasure init
+
+    @param syndromes A vector of booleans representing the syndromes.
+*/
 void init_clusters(std::vector<bool>& syndromes)
 {
     for (size_t i = 0; i < syndromes.size(); i++)
     {
+        // Row number is periodic on rounds (rows*cols = total number of nodes in a round)
         auto nodeRow = (i % (config::NODES_ROWS * config::NODES_COLS)) / config::NODES_COLS;
+
+        // Column number is periodic on rows
         auto nodeCol = i % config::NODES_COLS;
+
+        // Round number is integer division of index and total number of nodes in a round
         auto round = i / (config::NODES_COLS * config::NODES_ROWS);
 
+        // Setting node properties
         nodes[round][nodeRow][nodeCol].coords = std::make_tuple(round, nodeRow, nodeCol);
         nodes[round][nodeRow][nodeCol].root_coords = std::make_tuple(round, nodeRow, nodeCol);
         nodes[round][nodeRow][nodeCol].syndrome = syndromes[i];
@@ -31,18 +45,38 @@ void init_clusters(std::vector<bool>& syndromes)
         nodes[round][nodeRow][nodeCol].syndrome_count = syndromes[i] ? 1 : 0;
         nodes[round][nodeRow][nodeCol].on_border = false;
 
+        // Boundaries from previous decoding shots are cleared
         nodes[round][nodeRow][nodeCol].boundary.clear();
 
+        // If the node is a syndrome, it is added to the odd clusters
         if (syndromes[i])
             odd_clusters.insert(&nodes[round][nodeRow][nodeCol]);
 
-        auto edgeRow = nodeRow;
-        auto edgeCol = 2*nodeCol;
+        // Setting edge properties
+        /*
+            Here, each node sets its neighboring edges.
+
+            The edges nodeA and nodeB coordinates are connected to the current node,
+            with the convention that nodeA is the one with the lower row coordinate,
+            thus each node sets only one between nodeA and nodeB coordinates.
+
+            The only exception is the edges that are on the border of the lattice, 
+            which are set to BORDER_ID.
+        */
 
         // Bottom edges
+        
+        // Bottom edges have "same" row coordinate
+        // Bottom edges come in couple for each node, so we need to double the column coordinate
+        auto edgeRow = nodeRow;
+        auto edgeCol = 2*nodeCol;
+        
+        // Bottom edges only exist if the node is not on the last row
         if (nodeRow < config::NODES_ROWS - 1)
         {
             // Bottom left
+
+            // For odd rows, the first edge is no bottom edge for any REAL syndrome
             if (nodeRow % 2 == 1)
                 edgeCol++;
 
@@ -62,11 +96,14 @@ void init_clusters(std::vector<bool>& syndromes)
             nodes[round][nodeRow][nodeCol].boundary.push_back(&edge_support[round][edgeRow][edgeCol]);
         }
 
+        // Top edges
 
+        // Top edges have a decreased row coordinate
+        // Top edges come in couple for each node, so we need to double the column coordinate
         edgeRow = nodeRow - 1;
         edgeCol = 2*nodeCol;
 
-        // Top edges
+        // Top edges only exist if the node is not on the first row
         if (nodeRow > 0)
         {
             // Top left
@@ -89,7 +126,14 @@ void init_clusters(std::vector<bool>& syndromes)
             nodes[round][nodeRow][nodeCol].boundary.push_back(&edge_support[round][edgeRow][edgeCol]);
         }
 
-        // Between rounds edges
+        // Between rounds edges (vertical edges)
+        /*
+            Vertical edges connect the current node with the one with same
+            row and column coordinates in the previous round.
+
+            In this sense, each node sets only one vertical edge, the one
+            connecting with its previous self.
+        */
         if (round > 0)
         {
             vertical_edge_support[round-1][nodeRow][nodeCol].state = UNGROWN;
@@ -101,6 +145,13 @@ void init_clusters(std::vector<bool>& syndromes)
     }
 }
 
+/*
+    The find function is used to find the root of a node in the union-find
+    data structure. It uses path compression to optimize the search process.
+
+    @param node The node whose root is to be found.
+    @return A pointer to the root node.
+*/
 Node* find(Node* node)
 {
     auto round = std::get<0>(node->coords);
@@ -121,6 +172,16 @@ Node* find(Node* node)
     return &nodes[rootRound][rootRowCoord][rootColCoord];
 }
 
+/*
+    The merge function merges two clusters in the union-find data structure.
+    It updates the root coordinates, syndrome count, ancilla count, and boundary
+    of the clusters. It also handles the case where the clusters are on the border.
+
+    Additionally, if an edge is found to be a cycle in a cluster, it is peeled off
+    to enhance the future Peeling Algorithm.
+
+    @param edge The edge that connects the two clusters to be merged.
+*/
 void merge(Edge* edge)
 {
     Node* rootA;
@@ -173,6 +234,14 @@ void merge(Edge* edge)
     }   
 }
 
+/*
+    The grow function iteratively grows the clusters in the union-find
+    data structure. It updates the state of the boundary edges and merges 
+    the clusters until there are no more odd clusters left.
+
+    Even clusters, in codes with boundaries, are also clusters that
+    touched the border.
+*/
 void grow()
 {
     while (odd_clusters.size())
