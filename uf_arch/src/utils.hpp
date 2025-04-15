@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <vector>
+#include <map>
 
 #include "types.hpp"
 #include "config.hpp"
@@ -115,6 +116,35 @@ std::vector<bool> generate_random_syndrome(int size, float probability)
         syndrome[i] = (rand() / (float)RAND_MAX) < probability;
     }
     return syndrome;
+}
+
+std::map<std::string, EdgeState> get_erasure_map(Edge edge_support[config::ROUNDS][config::EDGES_ROWS][config::EDGES_COLS],
+                                                   Edge vertical_edge_support[config::ROUNDS][config::NODES_ROWS][config::NODES_COLS])
+{
+    std::map<std::string, EdgeState> erasure_map;
+
+    for (int r = 0; r < config::ROUNDS; r++)
+    {
+        for (int i = 0; i < config::EDGES_ROWS; i++)
+        {
+            for (int j = 0; j < config::EDGES_COLS; j++)
+            {
+                std::string key = "H(" + std::to_string(r) + "," + std::to_string(i) + "," + std::to_string(j) + ")";
+                erasure_map[key] = edge_support[r][i][j].state;
+            }
+        }
+
+        for (int i = 0; i < config::NODES_ROWS; i++)
+        {
+            for (int j = 0; j < config::NODES_COLS; j++)
+            {
+                std::string key = "V(" + std::to_string(r) + "," + std::to_string(i) + "," + std::to_string(j) + ")";
+                erasure_map[key] = vertical_edge_support[r][i][j].state;
+            }
+        }
+    }
+
+    return erasure_map;
 }
 
 #endif
