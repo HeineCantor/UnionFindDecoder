@@ -8,15 +8,11 @@
 #define INVALID_ID std::make_tuple(-2, -2, -2)
 
 typedef std::tuple<int, int, int> Coords3D;
+typedef int EdgeState;
 
-enum EdgeState {
-    UNGROWN = 0,
-    HALF_GROWN = 1,
-    GROWN = 2,
-
-    PEELED = -1,
-    MATCHED = -2,
-};
+const EdgeState MAX_GROWN = 2;
+const EdgeState PEELED = -1;
+const EdgeState MATCHED = -2;
 
 struct Edge {
     EdgeState state;

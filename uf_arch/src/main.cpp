@@ -80,7 +80,7 @@ void init_clusters(std::vector<bool>& syndromes)
             if (nodeRow % 2 == 1)
                 edgeCol++;
 
-            edge_support[round][edgeRow][edgeCol].state = UNGROWN;
+            edge_support[round][edgeRow][edgeCol].state = 0;
             edge_support[round][edgeRow][edgeCol].nodeA_coords = nodes[round][nodeRow][nodeCol].coords;
             if (nodeRow % 2 == 0 && nodeCol == 0)
                 edge_support[round][edgeRow][edgeCol].nodeB_coords = BORDER_ID;
@@ -89,7 +89,7 @@ void init_clusters(std::vector<bool>& syndromes)
             // Bottom right
             edgeCol++;
 
-            edge_support[round][edgeRow][edgeCol].state = UNGROWN;
+            edge_support[round][edgeRow][edgeCol].state = 0;
             edge_support[round][edgeRow][edgeCol].nodeA_coords = nodes[round][nodeRow][nodeCol].coords;
             if (nodeRow % 2 == 1 && nodeCol == config::NODES_COLS - 1)
                 edge_support[round][edgeRow][edgeCol].nodeB_coords = BORDER_ID;
@@ -110,7 +110,7 @@ void init_clusters(std::vector<bool>& syndromes)
             if (nodeRow % 2 == 1)
                 edgeCol++;
 
-            edge_support[round][edgeRow][edgeCol].state = UNGROWN;
+            edge_support[round][edgeRow][edgeCol].state = 0;
             edge_support[round][edgeRow][edgeCol].nodeB_coords = nodes[round][nodeRow][nodeCol].coords;
             if (nodeRow % 2 == 0 && nodeCol == 0)
                 edge_support[round][edgeRow][edgeCol].nodeA_coords = BORDER_ID;
@@ -119,7 +119,7 @@ void init_clusters(std::vector<bool>& syndromes)
             // Top right
             edgeCol++;
 
-            edge_support[round][edgeRow][edgeCol].state = UNGROWN;
+            edge_support[round][edgeRow][edgeCol].state = 0;
             edge_support[round][edgeRow][edgeCol].nodeB_coords = nodes[round][nodeRow][nodeCol].coords;
             if (nodeRow % 2 == 1 && nodeCol == config::NODES_COLS - 1)
                 edge_support[round][edgeRow][edgeCol].nodeA_coords = BORDER_ID;
@@ -136,7 +136,7 @@ void init_clusters(std::vector<bool>& syndromes)
         */
         if (round > 0)
         {
-            vertical_edge_support[round-1][nodeRow][nodeCol].state = UNGROWN;
+            vertical_edge_support[round-1][nodeRow][nodeCol].state = 0;
             vertical_edge_support[round-1][nodeRow][nodeCol].nodeA_coords = nodes[round][nodeRow][nodeCol].coords;
             vertical_edge_support[round-1][nodeRow][nodeCol].nodeB_coords = nodes[round-1][nodeRow][nodeCol].coords;
             nodes[round][nodeRow][nodeCol].boundary.push_back(&vertical_edge_support[round-1][nodeRow][nodeCol]);
@@ -252,11 +252,11 @@ void grow()
         {
             for (auto edge : cluster->boundary)
             {
-                if (edge->state != GROWN)
+                if (edge->state != MAX_GROWN)
                 {
-                    edge->state = static_cast<EdgeState>(static_cast<int>(edge->state) + 1);
+                    edge->state += 1;
 
-                    if (edge->state == GROWN)
+                    if (edge->state == MAX_GROWN)
                         union_list.push_back(edge);
                 }
             }
