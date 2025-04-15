@@ -21,7 +21,7 @@ int main()
 
     auto start = std::chrono::high_resolution_clock::now();
 
-    UnionFind ufDecoder = UnionFind();
+    UnionFindDecoder ufDecoder = UnionFindDecoder();
 
     ufDecoder.init_clusters(syndromes);
     ufDecoder.grow();

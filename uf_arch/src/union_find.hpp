@@ -15,7 +15,7 @@
 // TODO: PyBindings are necessary both to validate the code
 //       with qSurface and to use the code in Stim.
 
-class UnionFind
+class UnionFindDecoder
 {
 public:
     void init_clusters(std::vector<bool>& syndromes);

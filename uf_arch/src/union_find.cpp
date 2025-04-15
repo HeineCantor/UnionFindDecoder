@@ -9,7 +9,7 @@
 
     @param syndromes A vector of booleans representing the syndromes.
 */
-void UnionFind::init_clusters(std::vector<bool>& syndromes)
+void UnionFindDecoder::init_clusters(std::vector<bool>& syndromes)
 {
     for (size_t i = 0; i < syndromes.size(); i++)
     {
@@ -137,7 +137,7 @@ void UnionFind::init_clusters(std::vector<bool>& syndromes)
     @param node The node whose root is to be found.
     @return A pointer to the root node.
 */
-Node* UnionFind::find(Node* node)
+Node* UnionFindDecoder::find(Node* node)
 {
     auto round = std::get<0>(node->coords);
     auto rowCoord = std::get<1>(node->coords);
@@ -167,7 +167,7 @@ Node* UnionFind::find(Node* node)
 
     @param edge The edge that connects the two clusters to be merged.
 */
-void UnionFind::merge(Edge* edge)
+void UnionFindDecoder::merge(Edge* edge)
 {
     Node* rootA;
     Node* rootB;
@@ -229,7 +229,7 @@ void UnionFind::merge(Edge* edge)
     Even clusters, in codes with boundaries, are also clusters that
     touched the border.
 */
-void UnionFind::grow()
+void UnionFindDecoder::grow()
 {
     while (odd_clusters.size())
     {
