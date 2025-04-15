@@ -14,6 +14,20 @@ const EdgeState MAX_GROWN = 2;
 const EdgeState PEELED = -1;
 const EdgeState MATCHED = -2;
 
+// TODO: here, we have some opinable choice. We should clarify if
+//       edges and nodes in both structures should be saved as
+//       with their coordinates or as pointers.
+
+/*
+    The Edge struct represents an edge in the support.
+
+    @param state The state of the edge in the union-find data structure. In weighted union-find,
+                 the state is used to keep track of the current weight of the edge.
+    @param nodeA_coords The coordinates of the first node connected by the edge (by convetion,
+                 the node with the lower row coordinate).
+    @param nodeB_coords The coordinates of the second node connected by the edge (by convetion,
+                 the node with the higher row coordinate).
+*/
 struct Edge {
     EdgeState state;
 
@@ -21,6 +35,17 @@ struct Edge {
     Coords3D nodeB_coords = INVALID_ID;
 };
 
+/*
+    The Node struct represents a node in the support.
+
+    @param coords The coordinates of the node in the lattice (#round, #row, #col).
+    @param root_coords The coordinates of the root node in the cluster (#round, #row, #col).
+    @param syndrome true if the node itself is as syndrome, false otherwise.
+    @param ancilla_count The number of nodes in the cluster represented by the node.
+    @param syndrome_count The number of syndromes in the cluster represented by the node.
+    @param on_border true if the cluster touches the border of the lattice, false otherwise.
+    @param boundary Edge pointers that are on the boundary of the cluster.
+*/
 struct Node {
     Coords3D coords;
     Coords3D root_coords;
