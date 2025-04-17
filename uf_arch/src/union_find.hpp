@@ -12,8 +12,7 @@
 //       in order to be able to specify the size of the lattice
 //       and the number of rounds at each run.
 
-// TODO: PyBindings are necessary both to validate the code
-//       with qSurface and to use the code in Stim.
+// TODO: PyBindings are necessary to validate in Stim.
 
 class UnionFindDecoder
 {
