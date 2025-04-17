@@ -226,6 +226,8 @@ void UnionFindDecoder::merge(Edge* edge)
     data structure. It updates the state of the boundary edges and merges 
     the clusters until there are no more odd clusters left.
 
+    TODO: maybe we can build leaves LUT support here
+
     Even clusters, in codes with boundaries, are also clusters that
     touched the border.
 */
@@ -252,4 +254,10 @@ void UnionFindDecoder::grow()
         for (auto& edge : union_list)
             merge(edge);
     }
+}
+
+// TODO: Peeling
+void peel()
+{
+    return;
 }

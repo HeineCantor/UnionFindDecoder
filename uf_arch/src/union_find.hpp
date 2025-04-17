@@ -21,6 +21,7 @@ public:
     void grow();
     void merge(Edge* edge);
     Node* find(Node* node);
+    void peel();
 
     auto get_edge_support() { return edge_support; }
     auto get_vertical_edge_support() { return vertical_edge_support; }

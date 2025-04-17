@@ -44,6 +44,7 @@ void generate_validation_files()
 
         ufDecoder.init_clusters(syndromes);
         ufDecoder.grow();
+        ufDecoder.peel();
 
         auto end = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
