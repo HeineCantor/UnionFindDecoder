@@ -18,7 +18,9 @@
 class UnionFindDecoder
 {
 public:
-    void init_clusters(std::vector<bool>& syndromes);
+    void initCluster(std::vector<bool>& syndromes, int parallelParam=1);
+    void initializer(std::vector<bool>& syndromes, int offset, int size);
+
     void grow();
     void merge(Edge* edge);
     Node* find(Node* node);

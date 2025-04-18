@@ -1,40 +1,66 @@
 #include "union_find.hpp"
 
 /*
-    The init_clusters function initializes the union-find data structure
-    for the given syndromes. It sets up the nodes and edges, and populates
-    the odd clusters with the initial syndromes.
+    The initCluster function initializes the union-find data structure
+    for the given syndromes. It sets up multiple initalizers based on the
+    parallel parameter. Each initializer is responsible for a specific
+    portion of the syndromes.
+
+    @param syndromes A vector of booleans representing the syndromes.
+*/
+void UnionFindDecoder::initCluster(std::vector<bool>& syndromes, int parallelParam)
+{
+    int globalSize = config::NODES_ROWS * config::NODES_COLS * config::ROUNDS;
+
+    // If the parallel parameter is greater than the global size, we just use less parallel resources.
+    if (parallelParam > globalSize)
+        parallelParam = globalSize;
+
+    int localSize = config::NODES_ROWS * config::NODES_COLS * config::ROUNDS / parallelParam;
+
+    for (int i = 0; i < parallelParam - 1; i++)
+        initializer(syndromes, i*localSize, localSize);
+
+    // The last initializer
+    initializer(syndromes, localSize*(parallelParam-1), globalSize - localSize*(parallelParam-1));
+}
+
+/*
+    The initializer function sets up the union-find data structure
+    for the given syndromes. It initializes the nodes and edges, and
+    sets up the clusters based on the syndromes.
 
     TODO: erasure init
 
     @param syndromes A vector of booleans representing the syndromes.
+    @param offset The offset to start initializing from.
 */
-void UnionFindDecoder::init_clusters(std::vector<bool>& syndromes)
+void UnionFindDecoder::initializer(std::vector<bool>& syndromes, int offset, int size)
 {
-    for (size_t i = 0; i < syndromes.size(); i++)
+    for (size_t i = 0; i < size; i++)
     {
         // Row number is periodic on rounds (rows*cols = total number of nodes in a round)
-        auto nodeRow = (i % (config::NODES_ROWS * config::NODES_COLS)) / config::NODES_COLS;
+        auto nodeRow = ((offset + i) % (config::NODES_ROWS * config::NODES_COLS)) / config::NODES_COLS;
 
         // Column number is periodic on rows
-        auto nodeCol = i % config::NODES_COLS;
+        auto nodeCol = (offset + i) % config::NODES_COLS;
 
         // Round number is integer division of index and total number of nodes in a round
-        auto round = i / (config::NODES_COLS * config::NODES_ROWS);
+        auto round = (offset + i) / (config::NODES_COLS * config::NODES_ROWS);
 
         // Setting node properties
         nodes[round][nodeRow][nodeCol].coords = std::make_tuple(round, nodeRow, nodeCol);
         nodes[round][nodeRow][nodeCol].root_coords = std::make_tuple(round, nodeRow, nodeCol);
-        nodes[round][nodeRow][nodeCol].syndrome = syndromes[i];
+        nodes[round][nodeRow][nodeCol].syndrome = syndromes[offset + i];
         nodes[round][nodeRow][nodeCol].ancilla_count = 1;
-        nodes[round][nodeRow][nodeCol].syndrome_count = syndromes[i] ? 1 : 0;
+        nodes[round][nodeRow][nodeCol].syndrome_count = syndromes[offset + i] ? 1 : 0;
         nodes[round][nodeRow][nodeCol].on_border = false;
 
         // Boundaries from previous decoding shots are cleared
         nodes[round][nodeRow][nodeCol].boundary.clear();
 
         // If the node is a syndrome, it is added to the odd clusters
-        if (syndromes[i])
+        if (syndromes[offset + i])
             odd_clusters.insert(&nodes[round][nodeRow][nodeCol]);
 
         // Setting edge properties
