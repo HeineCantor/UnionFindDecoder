@@ -17,10 +17,14 @@
 class UnionFindDecoder
 {
 public:
+    void decode(std::vector<bool>& syndromes, int initParallelParam=1);
+
     void initCluster(std::vector<bool>& syndromes, int parallelParam=1);
     void initializer(std::vector<bool>& syndromes, int offset, int size);
 
     void grow();
+    void grower();
+
     void merge(Edge* edge);
     Node* find(Node* node);
     void peel();

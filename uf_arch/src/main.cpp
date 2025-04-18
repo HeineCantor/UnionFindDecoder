@@ -44,7 +44,6 @@ void generate_validation_files()
 
         ufDecoder.initCluster(syndromes);
         ufDecoder.grow();
-        ufDecoder.peel();
 
         auto end = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
@@ -135,8 +134,8 @@ void randomSyndromeDecoding(int initParallelParam = 1)
     // Decode a random syndrome
     std::vector<bool> syndromes = generate_random_syndrome(config::NODES_COLS * config::NODES_ROWS * config::ROUNDS, 0.01);
     UnionFindDecoder ufDecoder;
-    ufDecoder.initCluster(syndromes, initParallelParam);
-    ufDecoder.grow();
+
+    ufDecoder.decode(syndromes, initParallelParam);
 
     auto erasureMap = get_erasure_map(ufDecoder.get_edge_support(), ufDecoder.get_vertical_edge_support());
     for (const auto& entry : erasureMap)
@@ -150,7 +149,7 @@ int main()
 {
     // generate_validation_files();    
     // decode_specific(16484);
-    randomSyndromeDecoding(60);
+    randomSyndromeDecoding(4);
 
     return 0;
 }

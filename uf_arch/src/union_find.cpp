@@ -1,5 +1,17 @@
 #include "union_find.hpp"
 
+void UnionFindDecoder::decode(std::vector<bool>& syndromes, int initParallelParam)
+{
+    // Initialize the union-find data structure
+    initCluster(syndromes, initParallelParam);
+
+    // Grow the clusters
+    grow();
+
+    // Perform peeling
+    // peel();
+}
+
 /*
     The initCluster function initializes the union-find data structure
     for the given syndromes. It sets up multiple initalizers based on the
@@ -283,7 +295,7 @@ void UnionFindDecoder::grow()
 }
 
 // TODO: Peeling
-void peel()
+void UnionFindDecoder::peel()
 {
     return;
 }

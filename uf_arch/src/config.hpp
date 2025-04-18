@@ -10,7 +10,7 @@ namespace config {
         REPETITION
     };
 
-    const int CODE_DISTANCE = 5;
+    const int CODE_DISTANCE = 3;
     const int ROUNDS = CODE_DISTANCE;
     const CodeType CODE_TYPE = ROTATED;
 
