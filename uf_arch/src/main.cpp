@@ -25,7 +25,11 @@ void generate_validation_files()
 
     // Create output directory if it doesn't exist
     std::string command = "mkdir -p val_files";
-    system(command.c_str());
+    if (system(command.c_str()) != 0)
+    {
+        std::cerr << "Error creating directory" << std::endl;
+        return;
+    }
 
     // Delete output files
     std::remove(SYNDROME_FILE);
@@ -40,6 +44,7 @@ void generate_validation_files()
 
         ufDecoder.initCluster(syndromes);
         ufDecoder.grow();
+        ufDecoder.peel();
 
         auto end = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
