@@ -273,36 +273,13 @@ void UnionFindDecoder::merge(Edge* edge)
 
 /*
     The standard grow function iteratively grows the clusters in the union-find
-    data structure. It updates the state of the boundary edges and merges 
-    the clusters until there are no more odd clusters left.
+    data structure. It updates the state of the boundary edges.
 
     TODO: maybe we can build leaves LUT support here
 
     Even clusters, in codes with boundaries, are also clusters that
     touched the border.
 */
-void UnionFindDecoder::standard_grow()
-{
-    union_list.clear();
-
-    for (auto cluster : odd_clusters)
-    {
-        for (auto edge : cluster->boundary)
-        {
-            if (edge->state != MAX_GROWN)
-            {
-                edge->state += 1;
-
-                if (edge->state == MAX_GROWN)
-                    union_list.push_back(edge);
-            }
-        }
-    }
-
-    for (auto& edge : union_list)
-        merge(edge);
-}
-
 void UnionFindDecoder::grow()
 {
     union_list.clear();

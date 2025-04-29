@@ -24,7 +24,6 @@ public:
     void initCluster(std::vector<bool>& syndromes);
     void initializer(std::vector<bool>& syndromes, int offset, int size);
 
-    void standard_grow();
     void grow();
     void grower(std::vector<Edge*> boundaries, int offset, int size);
 
