@@ -17,13 +17,16 @@
 class UnionFindDecoder
 {
 public:
-    void decode(std::vector<bool>& syndromes, int initParallelParam=1);
+    UnionFindDecoder(int initParallelParam=1, int growParallelParam=1);
 
-    void initCluster(std::vector<bool>& syndromes, int parallelParam=1);
+    void decode(std::vector<bool>& syndromes);
+
+    void initCluster(std::vector<bool>& syndromes);
     void initializer(std::vector<bool>& syndromes, int offset, int size);
 
+    void standard_grow();
     void grow();
-    void grower();
+    void grower(std::vector<Edge*> boundaries, int offset, int size);
 
     void merge(Edge* edge);
     Node* find(Node* node);
@@ -39,6 +42,9 @@ private:
 
     std::set<Node*> odd_clusters;
     std::vector<Edge*> union_list;
+
+    int initParallelParam;
+    int growParallelParam;
 };
 
 #endif

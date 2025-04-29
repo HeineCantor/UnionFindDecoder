@@ -1,12 +1,24 @@
 #include "union_find.hpp"
 
-void UnionFindDecoder::decode(std::vector<bool>& syndromes, int initParallelParam)
+UnionFindDecoder::UnionFindDecoder(int initParallelParam, int growParallelParam)
+{
+    this->initParallelParam = initParallelParam;
+    this->growParallelParam = growParallelParam;
+}
+
+void UnionFindDecoder::decode(std::vector<bool>& syndromes)
 {
     // Initialize the union-find data structure
-    initCluster(syndromes, initParallelParam);
+    initCluster(syndromes);
 
-    // Grow the clusters
-    grow();
+    // Grow&Merge Loop
+    while (odd_clusters.size())
+    {
+        grow();
+
+        for (auto edge : union_list)
+            merge(edge);
+    }
 
     // Perform peeling
     // peel();
@@ -20,21 +32,21 @@ void UnionFindDecoder::decode(std::vector<bool>& syndromes, int initParallelPara
 
     @param syndromes A vector of booleans representing the syndromes.
 */
-void UnionFindDecoder::initCluster(std::vector<bool>& syndromes, int parallelParam)
+void UnionFindDecoder::initCluster(std::vector<bool>& syndromes)
 {
     int globalSize = config::NODES_ROWS * config::NODES_COLS * config::ROUNDS;
 
     // If the parallel parameter is greater than the global size, we just use less parallel resources.
-    if (parallelParam > globalSize)
-        parallelParam = globalSize;
+    if (initParallelParam > globalSize)
+        initParallelParam = globalSize;
 
-    int localSize = config::NODES_ROWS * config::NODES_COLS * config::ROUNDS / parallelParam;
+    int localSize = config::NODES_ROWS * config::NODES_COLS * config::ROUNDS / initParallelParam;
 
-    for (int i = 0; i < parallelParam - 1; i++)
+    for (int i = 0; i < initParallelParam - 1; i++)
         initializer(syndromes, i*localSize, localSize);
 
     // The last initializer
-    initializer(syndromes, localSize*(parallelParam-1), globalSize - localSize*(parallelParam-1));
+    initializer(syndromes, localSize*(initParallelParam-1), globalSize - localSize*(initParallelParam-1));
 }
 
 /*
@@ -49,7 +61,7 @@ void UnionFindDecoder::initCluster(std::vector<bool>& syndromes, int parallelPar
 */
 void UnionFindDecoder::initializer(std::vector<bool>& syndromes, int offset, int size)
 {
-    for (size_t i = 0; i < size; i++)
+    for (int i = 0; i < size; i++)
     {
         // Row number is periodic on rounds (rows*cols = total number of nodes in a round)
         auto nodeRow = ((offset + i) % (config::NODES_ROWS * config::NODES_COLS)) / config::NODES_COLS;
@@ -260,7 +272,7 @@ void UnionFindDecoder::merge(Edge* edge)
 }
 
 /*
-    The grow function iteratively grows the clusters in the union-find
+    The standard grow function iteratively grows the clusters in the union-find
     data structure. It updates the state of the boundary edges and merges 
     the clusters until there are no more odd clusters left.
 
@@ -269,28 +281,62 @@ void UnionFindDecoder::merge(Edge* edge)
     Even clusters, in codes with boundaries, are also clusters that
     touched the border.
 */
-void UnionFindDecoder::grow()
+void UnionFindDecoder::standard_grow()
 {
-    while (odd_clusters.size())
+    union_list.clear();
+
+    for (auto cluster : odd_clusters)
     {
-        union_list.clear();
-
-        for (auto cluster : odd_clusters)
+        for (auto edge : cluster->boundary)
         {
-            for (auto edge : cluster->boundary)
+            if (edge->state != MAX_GROWN)
             {
-                if (edge->state != MAX_GROWN)
-                {
-                    edge->state += 1;
+                edge->state += 1;
 
-                    if (edge->state == MAX_GROWN)
-                        union_list.push_back(edge);
-                }
+                if (edge->state == MAX_GROWN)
+                    union_list.push_back(edge);
             }
         }
+    }
 
-        for (auto& edge : union_list)
-            merge(edge);
+    for (auto& edge : union_list)
+        merge(edge);
+}
+
+void UnionFindDecoder::grow()
+{
+    union_list.clear();
+
+    std::vector<Edge*> boundaries;
+
+    for (auto cluster : odd_clusters)
+        boundaries.insert(boundaries.end(), cluster->boundary.begin(), cluster->boundary.end());
+
+    if (growParallelParam > boundaries.size())
+        growParallelParam = boundaries.size();
+
+    int localSize = boundaries.size() / growParallelParam;
+
+    for (int i = 0; i < growParallelParam - 1; i++)
+        grower(boundaries, i*localSize, localSize);
+
+    // The last grower
+    grower(boundaries, localSize*(growParallelParam-1), boundaries.size() - localSize*(growParallelParam-1));
+}
+
+void UnionFindDecoder::grower(std::vector<Edge*> boundaries, int offset, int size)
+{
+    for (int i = 0; i < size; i++)
+    {
+        auto edge = boundaries[offset + i];
+
+        if (edge->state != MAX_GROWN)
+        {
+            edge->state += 1;
+
+            if (edge->state == MAX_GROWN)
+                union_list.push_back(edge);
+        }
     }
 }
 

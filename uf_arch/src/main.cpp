@@ -129,19 +129,24 @@ void decode_specific(int index)
     }
 }
 
-void randomSyndromeDecoding(int initParallelParam = 1)
+void randomSyndromeDecoding(int initParallelParam = 1, int growParallelParam = 1)
 {
     // Decode a random syndrome
-    std::vector<bool> syndromes = generate_random_syndrome(config::NODES_COLS * config::NODES_ROWS * config::ROUNDS, 0.01);
-    UnionFindDecoder ufDecoder;
+    std::vector<bool> syndromes = generate_random_syndrome(config::NODES_COLS * config::NODES_ROWS * config::ROUNDS, 0.1);
+    std::cout << "Syndrome: ";
+    for (const auto& s : syndromes)
+        std::cout << s << " ";
+    std::cout << std::endl;
+    
+    UnionFindDecoder ufDecoder = UnionFindDecoder(initParallelParam, growParallelParam);
 
-    ufDecoder.decode(syndromes, initParallelParam);
+    ufDecoder.decode(syndromes);
 
     auto erasureMap = get_erasure_map(ufDecoder.get_edge_support(), ufDecoder.get_vertical_edge_support());
+    
     for (const auto& entry : erasureMap)
-    {
-        std::cout << entry.first << ": " << entry.second << "|";
-    }
+        std::cout << entry.first << ": " << entry.second << std::endl;
+    
     std::cout << std::endl;
 }
 
@@ -149,7 +154,7 @@ int main()
 {
     // generate_validation_files();    
     // decode_specific(16484);
-    randomSyndromeDecoding(4);
+    randomSyndromeDecoding(4, 4);
 
     return 0;
 }
