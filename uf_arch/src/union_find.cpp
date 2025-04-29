@@ -272,7 +272,7 @@ void UnionFindDecoder::merge(Edge* edge)
 }
 
 /*
-    The standard grow function iteratively grows the clusters in the union-find
+    The grow function iteratively grows the clusters in the union-find
     data structure. It updates the state of the boundary edges.
 
     TODO: maybe we can build leaves LUT support here
