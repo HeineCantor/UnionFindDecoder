@@ -106,14 +106,17 @@ void print_vertical_edge_support_matrix(Edge vertical_edge_support[config::ROUND
     }
 }
 
-std::vector<bool> generate_random_syndrome(int size, float probability)
+std::vector<bool> generate_random_syndrome(int size, float probability, int seed = -1)
 {
-    srand(42); // Seed the random number generator
+    if (seed == -1)
+        std::srand(time(NULL));
+    else
+        std::srand(seed);
 
     std::vector<bool> syndrome(size);
     for (int i = 0; i < size; i++)
     {
-        syndrome[i] = (rand() / (float)RAND_MAX) < probability;
+        syndrome[i] = (std::rand() / (float)RAND_MAX) < probability;
     }
     return syndrome;
 }

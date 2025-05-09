@@ -148,6 +148,24 @@ void randomSyndromeDecoding(int initParallelParam = 1, int growParallelParam = 1
         std::cout << entry.first << ": " << entry.second << std::endl;
     
     std::cout << std::endl;
+
+    auto stats = ufDecoder.get_stats();
+    std::cout << "Grow/merge iterations: " << stats.num_grow_merge_iters << std::endl;
+    
+    std::cout << "Average boundaries per iteration: ";
+    for (const auto& b : stats.boundaries_per_iter)
+        std::cout << b << " ";
+    std::cout << std::endl;
+
+    std::cout << "Average merges per iteration: ";
+    for (const auto& m : stats.merges_per_iter)
+        std::cout << m << " ";
+    std::cout << std::endl;
+
+    std::cout << "Average odd clusters per iteration: ";
+    for (const auto& o : stats.odd_clusters_per_iter)
+        std::cout << o << " ";
+    std::cout << std::endl;
 }
 
 int main()

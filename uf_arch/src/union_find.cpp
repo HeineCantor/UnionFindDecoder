@@ -11,17 +11,30 @@ void UnionFindDecoder::decode(std::vector<bool>& syndromes)
     // Initialize the union-find data structure
     initCluster(syndromes);
 
+    unsigned int grow_merge_iters = 0;
+
     // Grow&Merge Loop
     while (odd_clusters.size())
     {
+        grow_merge_iters++;
+        stats.odd_clusters_per_iter.push_back(odd_clusters.size());
+
         grow();
 
+        unsigned int num_merges = 0;
         for (auto edge : union_list)
+        {
+            num_merges++;
             merge(edge);
+        }
+
+        stats.merges_per_iter.push_back(num_merges);
     }
 
     // Perform peeling
     // peel();
+
+    stats.num_grow_merge_iters = grow_merge_iters;
 }
 
 /*

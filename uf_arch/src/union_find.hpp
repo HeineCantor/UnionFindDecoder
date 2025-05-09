@@ -14,6 +14,15 @@
 
 // TODO: PyBindings are necessary to validate in Stim.
 
+struct Stats
+{
+    int num_grow_merge_iters = 0;
+
+    std::vector<int> boundaries_per_iter;
+    std::vector<int> merges_per_iter;
+    std::vector<int> odd_clusters_per_iter;
+};
+
 class UnionFindDecoder
 {
 public:
@@ -34,6 +43,8 @@ public:
     auto get_edge_support() { return edge_support; }
     auto get_vertical_edge_support() { return vertical_edge_support; }
 
+    auto get_stats() { return stats; }
+
 private:
     Node nodes[config::ROUNDS][config::NODES_ROWS][config::NODES_COLS];
     Edge edge_support[config::ROUNDS][config::EDGES_ROWS][config::EDGES_COLS];
@@ -44,6 +55,8 @@ private:
 
     int initParallelParam;
     int growParallelParam;
+
+    Stats stats;
 };
 
 #endif
