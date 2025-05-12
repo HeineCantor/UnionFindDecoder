@@ -1,9 +1,25 @@
 #include "union_find.hpp"
 
-UnionFindDecoder::UnionFindDecoder(int initParallelParam, int growParallelParam)
+UnionFindDecoder::UnionFindDecoder(unsigned int distance, unsigned int rounds, CodeType codeType, int initParallelParam, int growParallelParam)
 {
     this->initParallelParam = initParallelParam;
     this->growParallelParam = growParallelParam;
+
+    this->distance = distance;
+    this->rounds = rounds;
+    this->codeType = codeType;
+
+    this->nodes = new Node[rounds * getNodeRows() * getNodeCols()];
+    this->edge_support = new Edge[rounds * getEdgeRows() * getEdgeCols()];
+    this->vertical_edge_support = new Edge[rounds * getNodeRows() * getNodeCols()];
+}
+
+UnionFindDecoder::~UnionFindDecoder()
+{
+    // Free the allocated memory for nodes, edge_support, and vertical_edge_support
+    delete[] nodes;
+    delete[] edge_support;
+    delete[] vertical_edge_support;
 }
 
 void UnionFindDecoder::decode(std::vector<bool>& syndromes)
@@ -20,6 +36,11 @@ void UnionFindDecoder::decode(std::vector<bool>& syndromes)
     {
         grow_merge_iters++;
         stats.odd_clusters_per_iter.push_back(odd_clusters.size());
+        
+        auto boundary_sum = 0;
+        for (auto cluster : odd_clusters)
+            boundary_sum += cluster->boundary.size();
+        stats.boundaries_per_iter.push_back(boundary_sum);
 
         grow();
 
@@ -49,13 +70,13 @@ void UnionFindDecoder::decode(std::vector<bool>& syndromes)
 */
 void UnionFindDecoder::initCluster(std::vector<bool>& syndromes)
 {
-    int globalSize = config::NODES_ROWS * config::NODES_COLS * config::ROUNDS;
+    int globalSize = rounds * getNodeRows() * getNodeCols();
 
     // If the parallel parameter is greater than the global size, we just use less parallel resources.
     if (initParallelParam > globalSize)
         initParallelParam = globalSize;
 
-    int localSize = config::NODES_ROWS * config::NODES_COLS * config::ROUNDS / initParallelParam;
+    int localSize = globalSize / initParallelParam;
 
     for (int i = 0; i < initParallelParam - 1; i++)
         initializer(syndromes, i*localSize, localSize);
@@ -79,28 +100,30 @@ void UnionFindDecoder::initializer(std::vector<bool>& syndromes, int offset, int
     for (int i = 0; i < size; i++)
     {
         // Row number is periodic on rounds (rows*cols = total number of nodes in a round)
-        auto nodeRow = ((offset + i) % (config::NODES_ROWS * config::NODES_COLS)) / config::NODES_COLS;
+        auto nodeRow = ((offset + i) % (getNodeRows() * getNodeCols())) / getNodeCols();
 
         // Column number is periodic on rows
-        auto nodeCol = (offset + i) % config::NODES_COLS;
+        auto nodeCol = (offset + i) % getNodeCols();
 
         // Round number is integer division of index and total number of nodes in a round
-        auto round = (offset + i) / (config::NODES_COLS * config::NODES_ROWS);
+        auto round = (offset + i) / (getNodeCols() * getNodeRows());
 
-        // Setting node properties
-        nodes[round][nodeRow][nodeCol].coords = std::make_tuple(round, nodeRow, nodeCol);
-        nodes[round][nodeRow][nodeCol].root_coords = std::make_tuple(round, nodeRow, nodeCol);
-        nodes[round][nodeRow][nodeCol].syndrome = syndromes[offset + i];
-        nodes[round][nodeRow][nodeCol].ancilla_count = 1;
-        nodes[round][nodeRow][nodeCol].syndrome_count = syndromes[offset + i] ? 1 : 0;
-        nodes[round][nodeRow][nodeCol].on_border = false;
+        auto node = &nodes[round * getNodeRows() * getNodeCols() + nodeRow * getNodeCols() + nodeCol];
+
+        // Setting node propertied        
+        node->coords = std::make_tuple(round, nodeRow, nodeCol);
+        node->root_coords = std::make_tuple(round, nodeRow, nodeCol);
+        node->syndrome = syndromes[offset + i];
+        node->ancilla_count = 1;
+        node->syndrome_count = syndromes[offset + i] ? 1 : 0;
+        node->on_border = false;
 
         // Boundaries from previous decoding shots are cleared
-        nodes[round][nodeRow][nodeCol].boundary.clear();
+        node->boundary.clear();
 
         // If the node is a syndrome, it is added to the odd clusters
         if (syndromes[offset + i])
-            odd_clusters.insert(&nodes[round][nodeRow][nodeCol]);
+            odd_clusters.insert(node);
 
         // Setting edge properties
         /*
@@ -122,7 +145,7 @@ void UnionFindDecoder::initializer(std::vector<bool>& syndromes, int offset, int
         auto edgeCol = 2*nodeCol;
         
         // Bottom edges only exist if the node is not on the last row
-        if (nodeRow < config::NODES_ROWS - 1)
+        if (nodeRow < getNodeRows() - 1)
         {
             // Bottom left
 
@@ -130,20 +153,26 @@ void UnionFindDecoder::initializer(std::vector<bool>& syndromes, int offset, int
             if (nodeRow % 2 == 1)
                 edgeCol++;
 
-            edge_support[round][edgeRow][edgeCol].state = 0;
-            edge_support[round][edgeRow][edgeCol].nodeA_coords = nodes[round][nodeRow][nodeCol].coords;
+            auto bottomLeftEdge = &edge_support[round * getEdgeRows() * getEdgeCols() + edgeRow * getEdgeCols() + edgeCol];
+
+            bottomLeftEdge->state = 0;
+            bottomLeftEdge->nodeA_coords = node->coords;
+
             if (nodeRow % 2 == 0 && nodeCol == 0)
-                edge_support[round][edgeRow][edgeCol].nodeB_coords = BORDER_ID;
-            nodes[round][nodeRow][nodeCol].boundary.push_back(&edge_support[round][edgeRow][edgeCol]);
+                bottomLeftEdge->nodeB_coords = BORDER_ID;
+            node->boundary.push_back(bottomLeftEdge);
 
             // Bottom right
             edgeCol++;
 
-            edge_support[round][edgeRow][edgeCol].state = 0;
-            edge_support[round][edgeRow][edgeCol].nodeA_coords = nodes[round][nodeRow][nodeCol].coords;
-            if (nodeRow % 2 == 1 && nodeCol == config::NODES_COLS - 1)
-                edge_support[round][edgeRow][edgeCol].nodeB_coords = BORDER_ID;
-            nodes[round][nodeRow][nodeCol].boundary.push_back(&edge_support[round][edgeRow][edgeCol]);
+            auto bottomRightEdge = &edge_support[round * getEdgeRows() * getEdgeCols() + edgeRow * getEdgeCols() + edgeCol];
+
+            bottomRightEdge->state = 0;
+            bottomRightEdge->nodeA_coords = node->coords;
+
+            if (nodeRow % 2 == 1 && nodeCol == getNodeCols() - 1)
+                bottomRightEdge->nodeB_coords = BORDER_ID;
+            node->boundary.push_back(bottomRightEdge);
         }
 
         // Top edges
@@ -160,20 +189,26 @@ void UnionFindDecoder::initializer(std::vector<bool>& syndromes, int offset, int
             if (nodeRow % 2 == 1)
                 edgeCol++;
 
-            edge_support[round][edgeRow][edgeCol].state = 0;
-            edge_support[round][edgeRow][edgeCol].nodeB_coords = nodes[round][nodeRow][nodeCol].coords;
+            auto topLeftEdge = &edge_support[round * getEdgeRows() * getEdgeCols() + edgeRow * getEdgeCols() + edgeCol];
+
+            topLeftEdge->state = 0;
+            topLeftEdge->nodeB_coords = node->coords;
+
             if (nodeRow % 2 == 0 && nodeCol == 0)
-                edge_support[round][edgeRow][edgeCol].nodeA_coords = BORDER_ID;
-            nodes[round][nodeRow][nodeCol].boundary.push_back(&edge_support[round][edgeRow][edgeCol]);
+                topLeftEdge->nodeA_coords = BORDER_ID;
+            node->boundary.push_back(topLeftEdge);
 
             // Top right
             edgeCol++;
 
-            edge_support[round][edgeRow][edgeCol].state = 0;
-            edge_support[round][edgeRow][edgeCol].nodeB_coords = nodes[round][nodeRow][nodeCol].coords;
-            if (nodeRow % 2 == 1 && nodeCol == config::NODES_COLS - 1)
-                edge_support[round][edgeRow][edgeCol].nodeA_coords = BORDER_ID;
-            nodes[round][nodeRow][nodeCol].boundary.push_back(&edge_support[round][edgeRow][edgeCol]);
+            auto topRightEdge = &edge_support[round * getEdgeRows() * getEdgeCols() + edgeRow * getEdgeCols() + edgeCol];
+
+            topRightEdge->state = 0;
+            topRightEdge->nodeB_coords = node->coords;
+            
+            if (nodeRow % 2 == 1 && nodeCol == getNodeCols() - 1)
+                topRightEdge->nodeA_coords = BORDER_ID;
+            node->boundary.push_back(topRightEdge);
         }
 
         // Between rounds edges (vertical edges)
@@ -186,11 +221,14 @@ void UnionFindDecoder::initializer(std::vector<bool>& syndromes, int offset, int
         */
         if (round > 0)
         {
-            vertical_edge_support[round-1][nodeRow][nodeCol].state = 0;
-            vertical_edge_support[round-1][nodeRow][nodeCol].nodeA_coords = nodes[round][nodeRow][nodeCol].coords;
-            vertical_edge_support[round-1][nodeRow][nodeCol].nodeB_coords = nodes[round-1][nodeRow][nodeCol].coords;
-            nodes[round][nodeRow][nodeCol].boundary.push_back(&vertical_edge_support[round-1][nodeRow][nodeCol]);
-            nodes[round-1][nodeRow][nodeCol].boundary.push_back(&vertical_edge_support[round-1][nodeRow][nodeCol]);
+            auto lowerVerticalEdge = &vertical_edge_support[(round - 1) * getNodeRows() * getNodeCols() + nodeRow * getNodeCols() + nodeCol];
+            auto lowerNode = &nodes[(round-1) * getNodeRows() * getNodeCols() + nodeRow * getNodeCols() + nodeCol];
+
+            lowerVerticalEdge->state = 0;
+            lowerVerticalEdge->nodeA_coords = node->coords;
+            lowerVerticalEdge->nodeB_coords = lowerNode->coords;
+            node->boundary.push_back(lowerVerticalEdge);
+            lowerNode->boundary.push_back(lowerVerticalEdge);
         }
     }
 }
@@ -213,13 +251,13 @@ Node* UnionFindDecoder::find(Node* node)
     auto rootColCoord = std::get<2>(node->root_coords);
 
     if (rowCoord != rootRowCoord || colCoord != rootColCoord || round != rootRound)
-        node->root_coords = find(&nodes[rootRound][rootRowCoord][rootColCoord])->root_coords;
+        node->root_coords = find(&nodes[rootRound * getNodeRows() * getNodeCols() + rootRowCoord * getNodeCols() + rootColCoord])->root_coords;
 
     rootRound = std::get<0>(node->root_coords);
     rootRowCoord = std::get<1>(node->root_coords);
     rootColCoord = std::get<2>(node->root_coords);
 
-    return &nodes[rootRound][rootRowCoord][rootColCoord];
+    return &nodes[rootRound * getNodeRows() * getNodeCols() + rootRowCoord * getNodeCols() + rootColCoord];
 }
 
 /*
@@ -237,24 +275,32 @@ void UnionFindDecoder::merge(Edge* edge)
     Node* rootA;
     Node* rootB;
 
+    auto nodeA_round = std::get<0>(edge->nodeA_coords);
+    auto nodeA_row = std::get<1>(edge->nodeA_coords);
+    auto nodeA_col = std::get<2>(edge->nodeA_coords);
+
+    auto nodeB_round = std::get<0>(edge->nodeB_coords);
+    auto nodeB_row = std::get<1>(edge->nodeB_coords);
+    auto nodeB_col = std::get<2>(edge->nodeB_coords);
+
     if (edge->nodeA_coords == BORDER_ID)
     {
-        rootB = find(&nodes[std::get<0>(edge->nodeB_coords)][std::get<1>(edge->nodeB_coords)][std::get<2>(edge->nodeB_coords)]);
+        rootB = find(&nodes[nodeB_round * getNodeRows() * getNodeCols() + nodeB_row * getNodeCols() + nodeB_col]);
 
         rootB->on_border = true;
         odd_clusters.erase(rootB);
     }
     else if (edge->nodeB_coords == BORDER_ID)
     {
-        rootA = find(&nodes[std::get<0>(edge->nodeA_coords)][std::get<1>(edge->nodeA_coords)][std::get<2>(edge->nodeA_coords)]);
+        rootA = find(&nodes[nodeA_round * getNodeRows() * getNodeCols() + nodeA_row * getNodeCols() + nodeA_col]);
 
         rootA->on_border = true;
         odd_clusters.erase(rootA);
     }
     else
     {
-        rootA = find(&nodes[std::get<0>(edge->nodeA_coords)][std::get<1>(edge->nodeA_coords)][std::get<2>(edge->nodeA_coords)]);
-        rootB = find(&nodes[std::get<0>(edge->nodeB_coords)][std::get<1>(edge->nodeB_coords)][std::get<2>(edge->nodeB_coords)]);
+        rootA = find(&nodes[nodeA_round * getNodeRows() * getNodeCols() + nodeA_row * getNodeCols() + nodeA_col]);
+        rootB = find(&nodes[nodeB_round * getNodeRows() * getNodeCols() + nodeB_row * getNodeCols() + nodeB_col]);
 
         rootA->boundary.erase(std::remove(rootA->boundary.begin(), rootA->boundary.end(), edge), rootA->boundary.end());
         rootB->boundary.erase(std::remove(rootB->boundary.begin(), rootB->boundary.end(), edge), rootB->boundary.end());

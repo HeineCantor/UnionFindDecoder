@@ -3,7 +3,6 @@
 
 #include <vector>
 #include <tuple>
-#include "config.hpp"
 
 #define BORDER_ID std::make_tuple(-1, -1, -1)
 #define INVALID_ID std::make_tuple(-2, -2, -2)
@@ -58,8 +57,10 @@ struct Node {
     std::vector<Edge*> boundary;
 };
 
-typedef Edge EdgeSupport[config::ROUNDS][config::EDGES_ROWS][config::EDGES_COLS];
-typedef Edge VerticalEdgeSupport[config::ROUNDS][config::NODES_ROWS][config::NODES_COLS];
-typedef Node NodeSupport[config::ROUNDS][config::NODES_ROWS][config::NODES_COLS];
+enum CodeType {
+    UNROTATED,
+    ROTATED,
+    REPETITION
+};
 
 #endif

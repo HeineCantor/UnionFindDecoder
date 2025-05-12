@@ -7,12 +7,7 @@
 
 #include "types.hpp"
 #include "config.hpp"
-
-// TODO: to test this on Stim, data structures should be dynamic
-//       in order to be able to specify the size of the lattice
-//       and the number of rounds at each run.
-
-// TODO: PyBindings are necessary to validate in Stim.
+#include "utils.hpp"
 
 struct Stats
 {
@@ -35,7 +30,8 @@ struct Stats
 class UnionFindDecoder
 {
 public:
-    UnionFindDecoder(int initParallelParam=1, int growParallelParam=1);
+    UnionFindDecoder(unsigned int distance, unsigned int rounds, CodeType codeType, int initParallelParam=1, int growParallelParam=1);
+    ~UnionFindDecoder();
 
     void decode(std::vector<bool>& syndromes);
 
@@ -51,9 +47,22 @@ public:
 
     Stats get_stats() { return stats; }
 
-    Node nodes[config::ROUNDS][config::NODES_ROWS][config::NODES_COLS];
-    Edge edge_support[config::ROUNDS][config::EDGES_ROWS][config::EDGES_COLS];
-    Edge vertical_edge_support[config::ROUNDS][config::NODES_ROWS][config::NODES_COLS];
+    unsigned int distance;
+    unsigned int rounds;
+    CodeType codeType;
+
+    // Node nodes[config::ROUNDS][config::NODES_ROWS][config::NODES_COLS];
+    // Edge edge_support[config::ROUNDS][config::EDGES_ROWS][config::EDGES_COLS];
+    // Edge vertical_edge_support[config::ROUNDS][config::NODES_ROWS][config::NODES_COLS];
+
+    inline unsigned int getNodeRows() { return getNodeRowsByCodeAndDistance(codeType, distance); }
+    inline unsigned int getNodeCols() { return getNodeColsByCodeAndDistance(codeType, distance); }
+    inline unsigned int getEdgeRows() { return getEdgeRowsByCodeAndDistance(codeType, distance); }
+    inline unsigned int getEdgeCols() { return getEdgeColsByCodeAndDistance(codeType, distance); }
+
+    Node* nodes;
+    Edge* edge_support;
+    Edge* vertical_edge_support;
 
 private:
     std::set<Node*> odd_clusters;

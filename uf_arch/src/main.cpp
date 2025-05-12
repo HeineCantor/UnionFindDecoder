@@ -11,6 +11,10 @@
 #include "config.hpp"
 #include "utils.hpp"
 
+#define DISTANCE 21
+#define ROUNDS DISTANCE
+#define CODE_TYPE CodeType::ROTATED
+
 #define VALIDATION_SHOTS 100000
 
 #define SYNDROME_FILE "val_files/syndrome.txt"
@@ -18,7 +22,7 @@
 
 void generate_validation_files()
 {
-    UnionFindDecoder ufDecoder;
+    UnionFindDecoder ufDecoder(DISTANCE, ROUNDS, CODE_TYPE);
     auto totalDuration = 0;
 
     srand(time(NULL)); // Seed for random number generation
@@ -35,10 +39,13 @@ void generate_validation_files()
     std::remove(SYNDROME_FILE);
     std::remove(OUTPUT_FILE);
 
+    auto nodeCols = getNodeColsByCodeAndDistance(CODE_TYPE, DISTANCE);
+    auto nodeRows = getNodeRowsByCodeAndDistance(CODE_TYPE, DISTANCE);
+
     for (int i = 0; i < VALIDATION_SHOTS; i++)
     {
-        auto syndromes = generate_random_syndrome(config::NODES_COLS * config::NODES_ROWS * config::ROUNDS, 0.01);
-        ufDecoder = UnionFindDecoder();
+        auto syndromes = generate_random_syndrome(nodeCols * nodeRows * ROUNDS, 0.01);
+        ufDecoder = UnionFindDecoder(DISTANCE, ROUNDS, CODE_TYPE);
 
         auto start = std::chrono::high_resolution_clock::now();    
 
@@ -70,7 +77,7 @@ void generate_validation_files()
         std::ofstream outputFile(OUTPUT_FILE, std::ios::app);
         if (outputFile.is_open())
         {
-            auto erasureMap = get_erasure_map(ufDecoder.edge_support, ufDecoder.vertical_edge_support);
+            auto erasureMap = get_erasure_map(ufDecoder.edge_support, ufDecoder.vertical_edge_support, ROUNDS, CODE_TYPE, DISTANCE);
             for (const auto& entry : erasureMap)
             {
                 outputFile << entry.first << ": " << entry.second << "|";
@@ -112,11 +119,11 @@ void decode_specific(int index)
                 syndromes.push_back(s);
             }
 
-            UnionFindDecoder ufDecoder;
+            UnionFindDecoder ufDecoder(DISTANCE, ROUNDS, CODE_TYPE);
             ufDecoder.initCluster(syndromes);
             ufDecoder.grow();
 
-            auto erasureMap = get_erasure_map(ufDecoder.edge_support, ufDecoder.vertical_edge_support);
+            auto erasureMap = get_erasure_map(ufDecoder.edge_support, ufDecoder.vertical_edge_support, ROUNDS, CODE_TYPE, DISTANCE);
             for (const auto& entry : erasureMap)
             {
                 std::cout << entry.first << ": " << entry.second << "|";
@@ -131,18 +138,21 @@ void decode_specific(int index)
 
 void randomSyndromeDecoding(int initParallelParam = 1, int growParallelParam = 1)
 {
+    auto nodeCols = getNodeColsByCodeAndDistance(CODE_TYPE, DISTANCE);
+    auto nodeRows = getNodeRowsByCodeAndDistance(CODE_TYPE, DISTANCE);
+
     // Decode a random syndrome
-    std::vector<bool> syndromes = generate_random_syndrome(config::NODES_COLS * config::NODES_ROWS * config::ROUNDS, 0.1);
+    std::vector<bool> syndromes = generate_random_syndrome(nodeCols * nodeRows * ROUNDS, 0.1);
     std::cout << "Syndrome: ";
     for (const auto& s : syndromes)
         std::cout << s << " ";
     std::cout << std::endl;
     
-    UnionFindDecoder ufDecoder = UnionFindDecoder(initParallelParam, growParallelParam);
+    UnionFindDecoder ufDecoder = UnionFindDecoder(DISTANCE, ROUNDS, CODE_TYPE, initParallelParam, growParallelParam);
 
     ufDecoder.decode(syndromes);
 
-    auto erasureMap = get_erasure_map(ufDecoder.edge_support, ufDecoder.vertical_edge_support);
+    auto erasureMap = get_erasure_map(ufDecoder.edge_support, ufDecoder.vertical_edge_support, ROUNDS, CODE_TYPE, DISTANCE);
     
     for (const auto& entry : erasureMap)
         std::cout << entry.first << ": " << entry.second << std::endl;
