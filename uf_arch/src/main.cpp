@@ -70,7 +70,7 @@ void generate_validation_files()
         std::ofstream outputFile(OUTPUT_FILE, std::ios::app);
         if (outputFile.is_open())
         {
-            auto erasureMap = get_erasure_map(ufDecoder.get_edge_support(), ufDecoder.get_vertical_edge_support());
+            auto erasureMap = get_erasure_map(ufDecoder.edge_support, ufDecoder.vertical_edge_support);
             for (const auto& entry : erasureMap)
             {
                 outputFile << entry.first << ": " << entry.second << "|";
@@ -116,7 +116,7 @@ void decode_specific(int index)
             ufDecoder.initCluster(syndromes);
             ufDecoder.grow();
 
-            auto erasureMap = get_erasure_map(ufDecoder.get_edge_support(), ufDecoder.get_vertical_edge_support());
+            auto erasureMap = get_erasure_map(ufDecoder.edge_support, ufDecoder.vertical_edge_support);
             for (const auto& entry : erasureMap)
             {
                 std::cout << entry.first << ": " << entry.second << "|";
@@ -142,7 +142,7 @@ void randomSyndromeDecoding(int initParallelParam = 1, int growParallelParam = 1
 
     ufDecoder.decode(syndromes);
 
-    auto erasureMap = get_erasure_map(ufDecoder.get_edge_support(), ufDecoder.get_vertical_edge_support());
+    auto erasureMap = get_erasure_map(ufDecoder.edge_support, ufDecoder.vertical_edge_support);
     
     for (const auto& entry : erasureMap)
         std::cout << entry.first << ": " << entry.second << std::endl;

@@ -40,16 +40,13 @@ public:
     Node* find(Node* node);
     void peel();
 
-    auto get_edge_support() { return edge_support; }
-    auto get_vertical_edge_support() { return vertical_edge_support; }
+    Stats get_stats() { return stats; }
 
-    auto get_stats() { return stats; }
-
-private:
     Node nodes[config::ROUNDS][config::NODES_ROWS][config::NODES_COLS];
     Edge edge_support[config::ROUNDS][config::EDGES_ROWS][config::EDGES_COLS];
     Edge vertical_edge_support[config::ROUNDS][config::NODES_ROWS][config::NODES_COLS];
 
+private:
     std::set<Node*> odd_clusters;
     std::vector<Edge*> union_list;
 
