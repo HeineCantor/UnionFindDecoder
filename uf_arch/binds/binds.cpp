@@ -9,6 +9,12 @@ PYBIND11_MODULE(uf_arch, m)
 {
     m.doc() = "Union-Find decoder bindings"; // Optional module docstring
 
+    py::enum_<CodeType>(m, "CodeType")
+        .value("UNROTATED", CodeType::UNROTATED)
+        .value("ROTATED", CodeType::ROTATED)
+        .value("REPETITION", CodeType::REPETITION)
+        .export_values();
+
     py::class_<Stats>(m, "Stats")
         .def(py::init<>())
         .def_readwrite("num_grow_merge_iters", &Stats::num_grow_merge_iters)
@@ -17,7 +23,7 @@ PYBIND11_MODULE(uf_arch, m)
         .def_readwrite("odd_clusters_per_iter", &Stats::odd_clusters_per_iter);
 
     py::class_<UnionFindDecoder>(m, "UnionFindDecoder")
-        .def(py::init<int, int>())
+        .def(py::init<unsigned int, unsigned int, CodeType, int, int>())
         .def("decode", &UnionFindDecoder::decode)
         .def("initCluster", &UnionFindDecoder::initCluster)
         .def("grow", &UnionFindDecoder::grow)
