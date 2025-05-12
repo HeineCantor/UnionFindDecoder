@@ -21,6 +21,15 @@ struct Stats
     std::vector<int> boundaries_per_iter;
     std::vector<int> merges_per_iter;
     std::vector<int> odd_clusters_per_iter;
+
+    void clear()
+    {
+        num_grow_merge_iters = 0;
+
+        boundaries_per_iter.clear();
+        merges_per_iter.clear();
+        odd_clusters_per_iter.clear();
+    }
 };
 
 class UnionFindDecoder

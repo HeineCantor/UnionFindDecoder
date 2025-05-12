@@ -8,6 +8,8 @@ UnionFindDecoder::UnionFindDecoder(int initParallelParam, int growParallelParam)
 
 void UnionFindDecoder::decode(std::vector<bool>& syndromes)
 {
+    stats.clear();
+
     // Initialize the union-find data structure
     initCluster(syndromes);
 
