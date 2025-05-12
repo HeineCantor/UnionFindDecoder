@@ -177,6 +177,7 @@ cython_debug/
 .qsurftest
 pictures
 test
+test_*
 test.py
 test.csv
 experimental_setup/results
