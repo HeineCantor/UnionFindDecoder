@@ -11,7 +11,7 @@
 #include "config.hpp"
 #include "utils.hpp"
 
-#define DISTANCE 3
+#define DISTANCE 5
 #define ROUNDS DISTANCE
 #define CODE_TYPE CodeType::ROTATED
 
@@ -142,7 +142,7 @@ void randomSyndromeDecoding(int initParallelParam = 1, int growParallelParam = 1
     auto nodeRows = getNodeRowsByCodeAndDistance(CODE_TYPE, DISTANCE);
 
     // Decode a random syndrome
-    std::vector<bool> syndromes = generate_random_syndrome(nodeCols * nodeRows * ROUNDS, 0.1);
+    std::vector<bool> syndromes = generate_random_syndrome(nodeCols * nodeRows * ROUNDS, 0.05);
     std::cout << "Syndrome: ";
     for (const auto& s : syndromes)
         std::cout << s << " ";
@@ -155,7 +155,8 @@ void randomSyndromeDecoding(int initParallelParam = 1, int growParallelParam = 1
     auto erasureMap = get_erasure_map(ufDecoder.edge_support, ufDecoder.vertical_edge_support, ROUNDS, CODE_TYPE, DISTANCE);
     
     for (const auto& entry : erasureMap)
-        std::cout << entry.first << ": " << entry.second << std::endl;
+        if (entry.second == -2)
+            std::cout << entry.first << ": " << entry.second << std::endl;
     
     std::cout << std::endl;
 

@@ -408,7 +408,6 @@ void UnionFindDecoder::grower(std::vector<Edge*> boundaries, int offset, int siz
     }
 }
 
-// TODO: Peeling
 void UnionFindDecoder::peel()
 {
     while (max_grown_count)
@@ -465,20 +464,27 @@ void UnionFindDecoder::peelLeaf(Edge* edge)
     auto nodeA = &nodes[nodeA_round * getNodeRows() * getNodeCols() + nodeA_row * getNodeCols() + nodeA_col];
     auto nodeB = &nodes[nodeB_round * getNodeRows() * getNodeCols() + nodeB_row * getNodeCols() + nodeB_col];
 
-    Node* otherNode;
     // if only one edge in original_boundary is MAX_GROWN, then it is a leaf
-    if (
-        std::count_if(nodeA->original_boundary.begin(), nodeA->original_boundary.end(), [](Edge* edge) { return edge->state == MAX_GROWN; }) == 1 ||
-        std::count_if(nodeB->original_boundary.begin(), nodeB->original_boundary.end(), [](Edge* edge) { return edge->state == MAX_GROWN; }) == 1
-    )
+    if (std::count_if(nodeA->original_boundary.begin(), nodeA->original_boundary.end(), [](Edge* edge) { return edge->state == MAX_GROWN; }) == 1)
     {
         if (nodeA->syndrome)
         {
             nodeA->syndrome ^= true;
             nodeB->syndrome ^= true;
             edge->state = MATCHED;
-        }
-        else
+        } else
+            edge->state = PEELED;
+
+        max_grown_count -= 1;
+    }
+    else if (std::count_if(nodeB->original_boundary.begin(), nodeB->original_boundary.end(), [](Edge* edge) { return edge->state == MAX_GROWN; }) == 1)
+    {
+        if (nodeB->syndrome)
+        {
+            nodeA->syndrome ^= true;
+            nodeB->syndrome ^= true;
+            edge->state = MATCHED;
+        } else
             edge->state = PEELED;
 
         max_grown_count -= 1;
