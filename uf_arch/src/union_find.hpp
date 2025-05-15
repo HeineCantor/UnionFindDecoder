@@ -68,10 +68,14 @@ private:
     std::set<Node*> odd_clusters;
     std::vector<Edge*> union_list;
 
+    unsigned int max_grown_count = 0;
+
     int initParallelParam;
     int growParallelParam;
 
     Stats stats;
+
+    void peelLeaf(Edge* edge);
 };
 
 #endif

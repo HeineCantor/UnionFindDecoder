@@ -55,6 +55,7 @@ struct Node {
     bool on_border;
 
     std::vector<Edge*> boundary;
+    std::vector<Edge*> original_boundary;
 };
 
 enum CodeType {

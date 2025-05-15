@@ -11,7 +11,7 @@
 #include "config.hpp"
 #include "utils.hpp"
 
-#define DISTANCE 21
+#define DISTANCE 3
 #define ROUNDS DISTANCE
 #define CODE_TYPE CodeType::ROTATED
 

@@ -54,10 +54,10 @@ void UnionFindDecoder::decode(std::vector<bool>& syndromes)
         stats.merges_per_iter.push_back(num_merges);
     }
 
-    // Perform peeling
-    // peel();
-
     stats.num_grow_merge_iters = grow_merge_iters;
+
+    // Perform peeling
+    peel();
 }
 
 /*
@@ -228,8 +228,21 @@ void UnionFindDecoder::initializer(std::vector<bool>& syndromes, int offset, int
             lowerVerticalEdge->nodeA_coords = node->coords;
             lowerVerticalEdge->nodeB_coords = lowerNode->coords;
             node->boundary.push_back(lowerVerticalEdge);
-            lowerNode->boundary.push_back(lowerVerticalEdge);
+            
+            //lowerNode->boundary.push_back(lowerVerticalEdge);
         }
+
+        if (round < rounds -1)
+        {
+            auto upperVerticalEdge = &vertical_edge_support[round * getNodeRows() * getNodeCols() + nodeRow * getNodeCols() + nodeCol];
+
+            node->boundary.push_back(upperVerticalEdge);
+        }
+
+        // Copy boundary into original boundary
+        node->original_boundary.clear();
+        for (auto edge : node->boundary)
+            node->original_boundary.push_back(edge);
     }
 }
 
@@ -283,9 +296,18 @@ void UnionFindDecoder::merge(Edge* edge)
     auto nodeB_row = std::get<1>(edge->nodeB_coords);
     auto nodeB_col = std::get<2>(edge->nodeB_coords);
 
+    max_grown_count += 1;
+
     if (edge->nodeA_coords == BORDER_ID)
     {
         rootB = find(&nodes[nodeB_round * getNodeRows() * getNodeCols() + nodeB_row * getNodeCols() + nodeB_col]);
+
+        // if B is already on border, we are making a cycle
+        if (config::DYNAMIC_CYCLE_PEEL && rootB->on_border)
+        {
+            edge->state = PEELED;
+            max_grown_count -= 1;
+        }
 
         rootB->on_border = true;
         odd_clusters.erase(rootB);
@@ -293,6 +315,13 @@ void UnionFindDecoder::merge(Edge* edge)
     else if (edge->nodeB_coords == BORDER_ID)
     {
         rootA = find(&nodes[nodeA_round * getNodeRows() * getNodeCols() + nodeA_row * getNodeCols() + nodeA_col]);
+
+        // if A is already on border, we are making a cycle
+        if (config::DYNAMIC_CYCLE_PEEL && rootA->on_border)
+        {
+            edge->state = PEELED;
+            max_grown_count -= 1;
+        }
 
         rootA->on_border = true;
         odd_clusters.erase(rootA);
@@ -328,6 +357,7 @@ void UnionFindDecoder::merge(Edge* edge)
         else if (config::DYNAMIC_CYCLE_PEEL) // Dynamically removing cycles
         {
             edge->state = PEELED;
+            max_grown_count -= 1;
         }
     }   
 }
@@ -381,5 +411,76 @@ void UnionFindDecoder::grower(std::vector<Edge*> boundaries, int offset, int siz
 // TODO: Peeling
 void UnionFindDecoder::peel()
 {
-    return;
+    while (max_grown_count)
+    {
+        for (int i = 0; i < rounds * getEdgeRows() * getEdgeCols(); i++)
+        {
+            auto edge = &edge_support[i];
+
+            if (edge->state == MAX_GROWN)
+                peelLeaf(edge);
+        }
+
+        for (int i = 0; i < rounds * getNodeRows() * getNodeCols(); i++)
+        {
+            auto edge = &vertical_edge_support[i];
+
+            if (edge->state == MAX_GROWN)
+                peelLeaf(edge);
+        }
+    }
+}
+
+void UnionFindDecoder::peelLeaf(Edge* edge)
+{
+    if (edge->state != MAX_GROWN)
+        return;
+
+    if (edge->nodeA_coords == BORDER_ID)
+    {
+        auto otherNode = &nodes[std::get<0>(edge->nodeB_coords) * getNodeRows() * getNodeCols() + std::get<1>(edge->nodeB_coords) * getNodeCols() + std::get<2>(edge->nodeB_coords)];
+        otherNode->syndrome ^= true;
+        edge->state = MATCHED;
+        max_grown_count -= 1;
+        return;
+    }
+
+    if (edge->nodeB_coords == BORDER_ID)
+    {
+        auto otherNode = &nodes[std::get<0>(edge->nodeA_coords) * getNodeRows() * getNodeCols() + std::get<1>(edge->nodeA_coords) * getNodeCols() + std::get<2>(edge->nodeA_coords)];
+        otherNode->syndrome ^= true;
+        edge->state = MATCHED;
+        max_grown_count -= 1;
+        return;
+    }
+
+    auto nodeA_round = std::get<0>(edge->nodeA_coords);
+    auto nodeA_row = std::get<1>(edge->nodeA_coords);
+    auto nodeA_col = std::get<2>(edge->nodeA_coords);
+
+    auto nodeB_round = std::get<0>(edge->nodeB_coords);
+    auto nodeB_row = std::get<1>(edge->nodeB_coords);
+    auto nodeB_col = std::get<2>(edge->nodeB_coords);
+
+    auto nodeA = &nodes[nodeA_round * getNodeRows() * getNodeCols() + nodeA_row * getNodeCols() + nodeA_col];
+    auto nodeB = &nodes[nodeB_round * getNodeRows() * getNodeCols() + nodeB_row * getNodeCols() + nodeB_col];
+
+    Node* otherNode;
+    // if only one edge in original_boundary is MAX_GROWN, then it is a leaf
+    if (
+        std::count_if(nodeA->original_boundary.begin(), nodeA->original_boundary.end(), [](Edge* edge) { return edge->state == MAX_GROWN; }) == 1 ||
+        std::count_if(nodeB->original_boundary.begin(), nodeB->original_boundary.end(), [](Edge* edge) { return edge->state == MAX_GROWN; }) == 1
+    )
+    {
+        if (nodeA->syndrome)
+        {
+            nodeA->syndrome ^= true;
+            nodeB->syndrome ^= true;
+            edge->state = MATCHED;
+        }
+        else
+            edge->state = PEELED;
+
+        max_grown_count -= 1;
+    }
 }

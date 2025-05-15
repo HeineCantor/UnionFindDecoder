@@ -5,7 +5,7 @@
 
 namespace config {
     // If true, the algorithm will remove cycles dynamically in the merge step, if a merge of a cluster with itself is detected.
-    const bool DYNAMIC_CYCLE_PEEL = false;
+    const bool DYNAMIC_CYCLE_PEEL = true;
 }
 
 #endif
