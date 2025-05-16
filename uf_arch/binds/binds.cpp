@@ -27,5 +27,6 @@ PYBIND11_MODULE(uf_arch, m)
         .def("decode", &UnionFindDecoder::decode)
         .def("initCluster", &UnionFindDecoder::initCluster)
         .def("grow", &UnionFindDecoder::grow)
-        .def("get_stats", &UnionFindDecoder::get_stats);
+        .def("get_stats", &UnionFindDecoder::get_stats)
+        .def("get_horizontal_corrections", &UnionFindDecoder::get_horizontal_corrections);
 }

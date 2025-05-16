@@ -11,7 +11,7 @@
 #include "config.hpp"
 #include "utils.hpp"
 
-#define DISTANCE 5
+#define DISTANCE 3
 #define ROUNDS DISTANCE
 #define CODE_TYPE CodeType::ROTATED
 
@@ -152,13 +152,19 @@ void randomSyndromeDecoding(int initParallelParam = 1, int growParallelParam = 1
 
     ufDecoder.decode(syndromes);
 
-    auto erasureMap = get_erasure_map(ufDecoder.edge_support, ufDecoder.vertical_edge_support, ROUNDS, CODE_TYPE, DISTANCE);
-    
-    for (const auto& entry : erasureMap)
-        if (entry.second == -2)
-            std::cout << entry.first << ": " << entry.second << std::endl;
-    
+    auto horizontalCorrections = ufDecoder.get_horizontal_corrections();
+    std::cout << "Horizontal corrections: ";
+    for (const auto& c : horizontalCorrections)
+        std::cout << "(" << std::get<0>(c) << ", " << std::get<1>(c) << ", " << std::get<2>(c) << ") ";
     std::cout << std::endl;
+
+    // auto erasureMap = get_erasure_map(ufDecoder.edge_support, ufDecoder.vertical_edge_support, ROUNDS, CODE_TYPE, DISTANCE);
+    
+    // for (const auto& entry : erasureMap)
+    //     if (entry.second == -2)
+    //         std::cout << entry.first << ": " << entry.second << std::endl;
+    
+    // std::cout << std::endl;
 
     auto stats = ufDecoder.get_stats();
     std::cout << "Grow/merge iterations: " << stats.num_grow_merge_iters << std::endl;

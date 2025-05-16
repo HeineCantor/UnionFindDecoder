@@ -45,6 +45,8 @@ public:
     Node* find(Node* node);
     void peel();
 
+    std::vector<Coords3D> get_horizontal_corrections();
+
     Stats get_stats() { return stats; }
 
     unsigned int distance;

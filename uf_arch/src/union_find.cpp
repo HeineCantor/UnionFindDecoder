@@ -490,3 +490,23 @@ void UnionFindDecoder::peelLeaf(Edge* edge)
         max_grown_count -= 1;
     }
 }
+
+std::vector<Coords3D> UnionFindDecoder::get_horizontal_corrections()
+{
+    std::vector<Coords3D> corrections;
+
+    for (int i = 0; i < rounds * getEdgeRows() * getEdgeCols(); i++)
+    {
+        if (edge_support[i].state != MATCHED)
+            continue;
+
+        auto round = i / (getEdgeRows() * getEdgeCols());
+        auto row = (i % (getEdgeRows() * getEdgeCols())) / getEdgeCols();
+        auto col = i % getEdgeCols();
+
+        Coords3D coords = std::make_tuple(round, row, col);
+        corrections.push_back(coords);
+    }
+    
+    return corrections;
+}
