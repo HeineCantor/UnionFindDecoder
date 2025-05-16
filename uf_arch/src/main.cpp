@@ -11,8 +11,8 @@
 #include "config.hpp"
 #include "utils.hpp"
 
-#define DISTANCE 3
-#define ROUNDS DISTANCE
+#define DISTANCE 7
+#define ROUNDS DISTANCE+1
 #define CODE_TYPE CodeType::ROTATED
 
 #define VALIDATION_SHOTS 100000
@@ -142,12 +142,22 @@ void randomSyndromeDecoding(int initParallelParam = 1, int growParallelParam = 1
     auto nodeRows = getNodeRowsByCodeAndDistance(CODE_TYPE, DISTANCE);
 
     // Decode a random syndrome
-    std::vector<bool> syndromes = generate_random_syndrome(nodeCols * nodeRows * ROUNDS, 0.05);
+    std::vector<bool> syndromes = generate_random_syndrome(nodeCols * nodeRows * ROUNDS, 0.1);
+
+    // syndromes = {
+    //     0, 0, 0, 0,
+    //     0, 0, 0, 0,
+    //     0, 0, 0, 1,
+    //     0, 0, 1, 0,
+    // };
+
+    syndromes =  { 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0};
+
     std::cout << "Syndrome: ";
     for (const auto& s : syndromes)
         std::cout << s << " ";
     std::cout << std::endl;
-    
+
     UnionFindDecoder ufDecoder = UnionFindDecoder(DISTANCE, ROUNDS, CODE_TYPE, initParallelParam, growParallelParam);
 
     ufDecoder.decode(syndromes);

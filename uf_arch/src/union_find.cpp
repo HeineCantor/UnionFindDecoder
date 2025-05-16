@@ -330,14 +330,12 @@ void UnionFindDecoder::merge(Edge* edge)
     {
         rootA = find(&nodes[nodeA_round * getNodeRows() * getNodeCols() + nodeA_row * getNodeCols() + nodeA_col]);
         rootB = find(&nodes[nodeB_round * getNodeRows() * getNodeCols() + nodeB_row * getNodeCols() + nodeB_col]);
-
-        rootA->boundary.erase(std::remove(rootA->boundary.begin(), rootA->boundary.end(), edge), rootA->boundary.end());
-        rootB->boundary.erase(std::remove(rootB->boundary.begin(), rootB->boundary.end(), edge), rootB->boundary.end());
-
-        rootA->boundary.erase(std::remove(rootA->boundary.begin(), rootA->boundary.end(), edge), rootA->boundary.end());
-
-        if (rootA != rootB)
+    
+        if (rootA != rootB && !(config::DYNAMIC_CYCLE_PEEL && rootA->on_border && rootB->on_border))
         {
+            rootA->boundary.erase(std::remove(rootA->boundary.begin(), rootA->boundary.end(), edge), rootA->boundary.end());
+            rootB->boundary.erase(std::remove(rootB->boundary.begin(), rootB->boundary.end(), edge), rootB->boundary.end());
+
             if (rootA->ancilla_count < rootB->ancilla_count)
                 std::swap(rootA, rootB);
     
@@ -438,18 +436,40 @@ void UnionFindDecoder::peelLeaf(Edge* edge)
     if (edge->nodeA_coords == BORDER_ID)
     {
         auto otherNode = &nodes[std::get<0>(edge->nodeB_coords) * getNodeRows() * getNodeCols() + std::get<1>(edge->nodeB_coords) * getNodeCols() + std::get<2>(edge->nodeB_coords)];
-        otherNode->syndrome ^= true;
-        edge->state = MATCHED;
+        
+        // if the non-border node is not a leaf, return, as border leaves should be peeled after the non-border ones
+        if (std::count_if(otherNode->original_boundary.begin(), otherNode->original_boundary.end(), [](Edge* edge) { return edge->state == MAX_GROWN; }) != 1)
+            return;
+
+        if (otherNode->syndrome)
+        {
+            otherNode->syndrome ^= true;
+            edge->state = MATCHED;
+        } else
+            edge->state = PEELED;
+        
         max_grown_count -= 1;
+
         return;
     }
 
     if (edge->nodeB_coords == BORDER_ID)
     {
         auto otherNode = &nodes[std::get<0>(edge->nodeA_coords) * getNodeRows() * getNodeCols() + std::get<1>(edge->nodeA_coords) * getNodeCols() + std::get<2>(edge->nodeA_coords)];
-        otherNode->syndrome ^= true;
-        edge->state = MATCHED;
+        
+        // if the non-border node is not a leaf, return, as border leaves should be peeled after the non-border ones
+        if (std::count_if(otherNode->original_boundary.begin(), otherNode->original_boundary.end(), [](Edge* edge) { return edge->state == MAX_GROWN; }) != 1)
+            return;
+        
+        if (otherNode->syndrome)
+        {
+            otherNode->syndrome ^= true;
+            edge->state = MATCHED;
+        } else
+            edge->state = PEELED;
+
         max_grown_count -= 1;
+
         return;
     }
 
