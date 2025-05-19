@@ -158,3 +158,48 @@ def countLogicalErrors(circuit: Circuit, shots: int) -> int:
         print("DEBUG")
 
     return numErrors
+
+def countLogicalErrors_uf_rotated_single_shot(dem, detectionEvent, observableFlip) -> int:
+    detCoords = dem.get_detector_coordinates()
+
+    codeDistance = int(list(detCoords.values())[-1][-1])
+
+    convCoords = {}
+    for i in range(len(detCoords)):
+        convCoords[i] = (detCoords[i][0] / 2 - 0.5, detCoords[i][1] / 2 - 0.5, detCoords[i][2])
+
+    numErrors = 0
+
+    code, decoder = initialize((codeDistance, codeDistance, codeDistance+1), "rotated", "unionfind", enabled_errors=["pauli"], faulty_measurements=True, initial_states=(0,0)
+                                , plotting=False)
+    
+    triggeredDetectorCoords = []
+    for detIndex in range(len(detectionEvent)):
+        if detectionEvent[detIndex]:
+            triggeredDetectorCoords.append(detCoords[detIndex])
+
+    error_dict_for_qsurface = {}
+
+    for i, err in enumerate(detectionEvent):
+        if err == 1:
+            error_dict_for_qsurface[convCoords[i]] = err
+
+    output = run(code, decoder, error_rates = {"p_bitflip": 0.1, "p_phaseflip": 0.1}, decode_initial=False, custom_error_dict=error_dict_for_qsurface)
+    matchings = output["matchings"]
+    originalMatchings = matchings
+
+    matchings = [str(m[0]).removeprefix("ex-").removeprefix("ex|").split('|')[0] for m in matchings if "ex" in str(m[0])]
+    matchings = [(float(m.split(',')[0][1:]), float(m.split(',')[1][:-1])) for m in matchings]
+    matchings = [(int((m[0] + 0.5) * 2), int((m[1] + 0.5) * 2)) for m in matchings]
+
+    tmpParity = 0
+
+    for m in matchings:
+        if m[1] == 1 and m[0] % 2 == 1:
+            tmpParity ^= 1
+
+    if tmpParity != observableFlip:
+        numErrors += 1
+    #print(numErrors)
+
+    return tmpParity, matchings, triggeredDetectorCoords

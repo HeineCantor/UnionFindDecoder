@@ -8,6 +8,8 @@ import utils
 
 from error_models import SuperconductiveEM
 
+# Temporary for validation
+
 SHOTS = 1000
 
 MIN_DISTANCE = 5
@@ -23,7 +25,8 @@ RESULTS_DIR = "results"
 RESULTS_PATH = f"{RESULTS_DIR}/experiment_results.csv"
 
 def sample_fromStim(stimSample, distance):
-    period = (distance + 1) * ((distance - 1) // 2)
+    columnLength = (distance - 1) // 2
+    period = (distance + 1) * columnLength
 
     starter_list = [0] * (distance - 1)
     for i in range((distance - 1) // 2):
@@ -31,7 +34,10 @@ def sample_fromStim(stimSample, distance):
     for i in range((distance - 1) // 2):
         starter_list[2*i + 1] = (distance - 1) // 2 - i - 1
 
-    for i in range(len(stimSample) // period):
+    for i in range(period // columnLength):
+        stimSample[2*i], stimSample[2*i + 1] = stimSample[2*i + 1], stimSample[2*i]
+
+    for i in range(1, len(stimSample) // period - 1):
         round = stimSample[i * period:(i + 1) * period]
         #converted = [round[2], round[0], round[3], round[1]]
         converted = [0] * period
@@ -42,6 +48,12 @@ def sample_fromStim(stimSample, distance):
             conv_coord = inner_offset + inner_sum
             converted[conv_coord] = round[j]
         stimSample[i * period:(i + 1) * period] = converted
+
+    
+    offset = len(stimSample) - period
+    for i in range(period // columnLength):
+        stimSample[offset + 2*i], stimSample[offset + 2*i + 1] = stimSample[offset + 2*i + 1], stimSample[offset + 2*i]
+
     return stimSample
 
 def execExperiment():
@@ -50,6 +62,7 @@ def execExperiment():
     for distance in DISTANCE_RANGE:
         for base_error_rate in ERROR_RATE_RANGE:
             error_count = 0
+            qSurfDeviation = 0
 
             print(f"Distance: {distance}, Base Error Rate: {base_error_rate}")
 
@@ -101,6 +114,8 @@ def execExperiment():
                 ufDecoder.decode(z_sample)
                 stats = ufDecoder.get_stats()
                 corrections = ufDecoder.get_horizontal_corrections()
+
+                qSurfParity, qSurfCorrections, qSurfTriggered = utils.countLogicalErrors_uf_rotated_single_shot(dem, sample, observables[k])
                 
                 # parity means counting the number of corrections with coordinate [1] == 0
                 parity = 0
@@ -110,6 +125,8 @@ def execExperiment():
 
                 if parity != observables[k]:
                     error_count += 1
+                    if qSurfParity != parity:
+                        qSurfDeviation += 1
 
                 experimentFrame.loc[len(experimentFrame)] = {
                     "repetition": k,
@@ -124,6 +141,8 @@ def execExperiment():
             # Calculate the error rate
             error_rate = error_count / SHOTS
             print(f"Accuracy (d={distance}, error_rate={base_error_rate}): {1-error_rate}")
+            print(f"QSurf Deviation (d={distance}, error_rate={base_error_rate}): {qSurfDeviation / SHOTS}")
+            print(f"Theoretical Accuracy (d={distance}, error_rate={base_error_rate}): {1-error_rate+qSurfDeviation/SHOTS}")
 
         # Save the experimentFrame to a CSV file
         experimentFrame.to_csv(RESULTS_PATH, index=False)
