@@ -34,10 +34,10 @@ def sample_fromStim(stimSample, distance):
     for i in range((distance - 1) // 2):
         starter_list[2*i + 1] = (distance - 1) // 2 - i - 1
 
-    for i in range(period // columnLength):
-        stimSample[2*i], stimSample[2*i + 1] = stimSample[2*i + 1], stimSample[2*i]
+    # for i in range(period // columnLength):
+    #     stimSample[2*i], stimSample[2*i + 1] = stimSample[2*i + 1], stimSample[2*i]
 
-    for i in range(1, len(stimSample) // period - 1):
+    for i in range(len(stimSample) // period):
         round = stimSample[i * period:(i + 1) * period]
         #converted = [round[2], round[0], round[3], round[1]]
         converted = [0] * period
@@ -50,9 +50,9 @@ def sample_fromStim(stimSample, distance):
         stimSample[i * period:(i + 1) * period] = converted
 
     
-    offset = len(stimSample) - period
-    for i in range(period // columnLength):
-        stimSample[offset + 2*i], stimSample[offset + 2*i + 1] = stimSample[offset + 2*i + 1], stimSample[offset + 2*i]
+    # offset = len(stimSample) - period
+    # for i in range(period // columnLength):
+    #     stimSample[offset + 2*i], stimSample[offset + 2*i + 1] = stimSample[offset + 2*i + 1], stimSample[offset + 2*i]
 
     return stimSample
 
@@ -95,23 +95,41 @@ def execExperiment():
             for k, sample in enumerate(tqdm(samples)):
                 sample = list(sample)
 
-                roundLen = (distance + 1) * ((distance - 1) // 2)
+                rounds = distance + 1
+                rowLen = (distance - 1) // 2
+                columnLen = (distance + 1)
+                roundLen = rowLen * columnLen
 
                 firstRound = sample[:roundLen]
                 innerRounds = sample[roundLen:-roundLen]
                 lastRound = sample[-roundLen:]
 
                 innerOnlyZ = []
+                innerOnlyX = []
 
                 for i, round in enumerate(innerRounds):
                     coord = detCoords[i+roundLen]
-                    if (coord[0] // 2) % 2 == 0 and (coord[1] // 2) % 2 == 0 or (coord[0] // 2) % 2 == 1 and (coord[1] // 2) % 2 == 1:
+                    if (coord[0] // 2) % 2 == (coord[1] // 2) % 2:
                         innerOnlyZ.append(round)
+                    else:
+                        innerOnlyX.append(round)
 
                 z_sample = firstRound + innerOnlyZ + lastRound
-                z_sample = sample_fromStim(z_sample, distance)
 
-                ufDecoder.decode(z_sample)
+                dbg_triggerd = []
+
+                input_sample = [0] * (roundLen * (distance + 1))
+                for i_bit, bit in enumerate(sample):
+                    coords = detCoords[i_bit]
+                    if bit and (coords[0] // 2) % 2 == (coords[1] // 2) % 2:
+                        dbg_triggerd.append(coords)
+                        unrolledCoords = coords[2] * roundLen + (coords[1] // 2 - 1) * columnLen // 2 + coords[0] // 4
+                        unrolledCoords = int(unrolledCoords)
+                        input_sample[unrolledCoords] = 1
+
+                input_sample = sample_fromStim(input_sample, distance)
+
+                ufDecoder.decode(input_sample)
                 stats = ufDecoder.get_stats()
                 corrections = ufDecoder.get_horizontal_corrections()
 
