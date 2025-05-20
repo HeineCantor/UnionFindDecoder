@@ -6,19 +6,20 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import utils
 
-from error_models import SuperconductiveEM
+import pandas as pd
+import matplotlib.pyplot as plt
 
-# Temporary for validation
+from error_models import SuperconductiveEM
 
 SHOTS = 1000
 
-MIN_DISTANCE = 5
+MIN_DISTANCE = 3
 MAX_DISTANCE = 31
 DISTANCE_RANGE = range(MIN_DISTANCE, MAX_DISTANCE + 1, 2)
 
 MIN_ERROR_RATE = 0.001
 MAX_ERROR_RATE = 0.01
-ERROR_RATE_STEP = 2
+ERROR_RATE_STEP = 10
 ERROR_RATE_RANGE = np.linspace(MIN_ERROR_RATE, MAX_ERROR_RATE, ERROR_RATE_STEP)
 
 RESULTS_DIR = "results"
@@ -58,11 +59,15 @@ def sample_fromStim(stimSample, distance):
 
 def execExperiment():
     experimentFrame = pd.DataFrame(columns=["repetition", "distance", "base_error_rate", "num_grow_merge_iters", "boundaries_per_iter", "odd_clusters_per_iter", "merges_per_iter"])
+    accuracyPrelimTest = pd.DataFrame(columns=["distance", "base_error_rate", "uf_arch_error_rate", "qsurf_deviation", "uf_arch_deviation", "test_total_deviation"])
 
     for distance in DISTANCE_RANGE:
         for base_error_rate in ERROR_RATE_RANGE:
             error_count = 0
             qSurfDeviation = 0
+            invDeviation = 0
+
+            TEST_totalDeviaton = 0
 
             print(f"Distance: {distance}, Base Error Rate: {base_error_rate}")
 
@@ -145,6 +150,11 @@ def execExperiment():
                     error_count += 1
                     if qSurfParity != parity:
                         qSurfDeviation += 1
+                elif qSurfParity != parity:
+                    invDeviation += 1
+
+                if qSurfParity != parity:
+                    TEST_totalDeviaton += 1
 
                 experimentFrame.loc[len(experimentFrame)] = {
                     "repetition": k,
@@ -159,14 +169,25 @@ def execExperiment():
             # Calculate the error rate
             error_rate = error_count / SHOTS
             print(f"Accuracy (d={distance}, error_rate={base_error_rate}): {1-error_rate}")
-            print(f"QSurf Deviation (d={distance}, error_rate={base_error_rate}): {qSurfDeviation / SHOTS}")
-            print(f"Theoretical Accuracy (d={distance}, error_rate={base_error_rate}): {1-error_rate+qSurfDeviation/SHOTS}")
+            print(f"QSurf is right, UFArch is wrong (d={distance}, error_rate={base_error_rate}): {qSurfDeviation / SHOTS}")
+            print(f"UFArch is right, QSurf is wrong (d={distance}, error_rate={base_error_rate}): {invDeviation / SHOTS}")
+            print(f"TEST Total Deviation(d={distance}, error_rate={base_error_rate}): {TEST_totalDeviaton / SHOTS}")
+            #print(f"Theoretical Accuracy (d={distance}, error_rate={base_error_rate}): {1-error_rate+qSurfDeviation/SHOTS}")
+            accuracyPrelimTest.loc[len(accuracyPrelimTest)] = {
+                "distance": distance,
+                "base_error_rate": base_error_rate,
+                "uf_arch_error_rate": error_rate,
+                "qsurf_deviation": qSurfDeviation / SHOTS,
+                "uf_arch_deviation": invDeviation / SHOTS
+            }
 
-        # Save the experimentFrame to a CSV file
-        experimentFrame.to_csv(RESULTS_PATH, index=False)
+            # Save the experimentFrame to a CSV file
+            experimentFrame.to_csv(RESULTS_PATH, index=False)
+            accuracyPrelimTest.to_csv(f"{RESULTS_DIR}/accuracy_prelim_test.csv", index=False)
 
     # Final saving
     experimentFrame.to_csv(RESULTS_PATH, index=False)
+    accuracyPrelimTest.to_csv(f"{RESULTS_DIR}/accuracy_prelim_test.csv", index=False)
 
 def plotExperimentResults():
     experimentFrame = pd.read_csv(RESULTS_PATH)
