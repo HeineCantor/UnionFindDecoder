@@ -19,7 +19,7 @@ codeTypeDict = {
 
 decoderDict = {
     "sparse_blossom": "pymatching",
-    "union_find": "union_find_decoder"
+    "union_find": "union_find"
 }
 
 CORES = 14
