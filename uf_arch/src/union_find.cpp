@@ -418,7 +418,7 @@ void UnionFindDecoder::peel()
                 peelLeaf(edge);
         }
 
-        for (int i = 0; i < rounds * getNodeRows() * getNodeCols(); i++)
+        for (int i = 0; i < (rounds-1) * getNodeRows() * getNodeCols(); i++)
         {
             auto edge = &vertical_edge_support[i];
 
