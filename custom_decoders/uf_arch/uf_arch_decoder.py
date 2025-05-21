@@ -34,14 +34,44 @@ class UFArchDecoder(sinter.Decoder):
         all_predictions = []
         for shot in packed_detection_event_data:
             unpacked = np.unpackbits(shot, bitorder='little')
-            prediction = predict()
+            
+            # TODO: extract method
+            rowLen = (distance - 1) // 2
+            columnLen = (distance + 1)
+            roundLen = rowLen * columnLen
+
+            dbg_triggerd = []
+
+            input_sample = [0] * (roundLen * (distance + 1))
+            for i_bit, bit in enumerate(unpacked):
+                coords = detCoords[i_bit]
+                if bit and (coords[0] // 2) % 2 == (coords[1] // 2) % 2:
+                    dbg_triggerd.append(coords)
+                    unrolledCoords = coords[2] * roundLen + (coords[1] // 2 - 1) * columnLen // 2 + coords[0] // 4
+                    unrolledCoords = int(unrolledCoords)
+                    input_sample[unrolledCoords] = 1
+
+            input_sample = sample_fromStim(input_sample, distance)
+
+            try:
+                ufDecoder.decode(input_sample)
+                stats = ufDecoder.get_stats()
+                corrections = ufDecoder.get_horizontal_corrections()
+
+                # parity means counting the number of corrections with coordinate [1] == 0
+                parity = 0
+                for correction in corrections:
+                    if correction[2] == distance-1:
+                        parity ^= 1
+            except:
+                parity = 0
+
+            prediction = [parity]
+
             all_predictions.append(prediction)
 
         # Write predictions.
         np.packbits(all_predictions, axis=1, bitorder='little').tofile(obs_predictions_b8_out_path)
-
-def predict():
-    return [0]
 
 def sample_fromStim(stimSample, distance):
     columnLength = (distance - 1) // 2
@@ -70,7 +100,7 @@ def sample_fromStim(stimSample, distance):
 def getCodeParams(detCoords: dict, codeType: str) -> dict:
     distance = 0
 
-    if codeType == "rotated":
+    if True or codeType == "rotated":
         distance = getRotatedParams(detCoords)
     elif codeType == "planar":
         distance = getUnrotatedParams(detCoords)
