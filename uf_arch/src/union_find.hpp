@@ -30,7 +30,7 @@ struct Stats
 class UnionFindDecoder
 {
 public:
-    UnionFindDecoder(unsigned int distance, unsigned int rounds, CodeType codeType, int initParallelParam=1, int growParallelParam=1);
+    UnionFindDecoder(unsigned int distance, unsigned int rounds, CodeType codeType, int initParallelParam=1, int growParallelParam=1, int earlyStoppingParam=-1);
     ~UnionFindDecoder();
 
     void decode(std::vector<bool>& syndromes);
@@ -74,6 +74,7 @@ private:
 
     int initParallelParam;
     int growParallelParam;
+    int earlyStoppingParam;
 
     Stats stats;
 

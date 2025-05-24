@@ -1,9 +1,10 @@
 #include "union_find.hpp"
 
-UnionFindDecoder::UnionFindDecoder(unsigned int distance, unsigned int rounds, CodeType codeType, int initParallelParam, int growParallelParam)
+UnionFindDecoder::UnionFindDecoder(unsigned int distance, unsigned int rounds, CodeType codeType, int initParallelParam, int growParallelParam, int earlyStoppingParam)
 {
     this->initParallelParam = initParallelParam;
     this->growParallelParam = growParallelParam;
+    this->earlyStoppingParam = earlyStoppingParam;
 
     this->distance = distance;
     this->rounds = rounds;
@@ -34,6 +35,9 @@ void UnionFindDecoder::decode(std::vector<bool>& syndromes)
     // Grow&Merge Loop
     while (odd_clusters.size())
     {
+        if (earlyStoppingParam >= 0 && grow_merge_iters >= earlyStoppingParam)
+            break;
+
         grow_merge_iters++;
         stats.odd_clusters_per_iter.push_back(odd_clusters.size());
         

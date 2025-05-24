@@ -11,7 +11,7 @@
 #include "config.hpp"
 #include "utils.hpp"
 
-#define DISTANCE 7
+#define DISTANCE 27
 #define ROUNDS DISTANCE+1
 #define CODE_TYPE CodeType::ROTATED
 
@@ -136,7 +136,7 @@ void decode_specific(int index)
     }
 }
 
-void randomSyndromeDecoding(int initParallelParam = 1, int growParallelParam = 1)
+void randomSyndromeDecoding(int initParallelParam = 1, int growParallelParam = 1, int earlyStoppingParam = -1)
 {
     auto nodeCols = getNodeColsByCodeAndDistance(CODE_TYPE, DISTANCE);
     auto nodeRows = getNodeRowsByCodeAndDistance(CODE_TYPE, DISTANCE);
@@ -158,7 +158,7 @@ void randomSyndromeDecoding(int initParallelParam = 1, int growParallelParam = 1
         std::cout << s << " ";
     std::cout << std::endl;
 
-    UnionFindDecoder ufDecoder = UnionFindDecoder(DISTANCE, ROUNDS, CODE_TYPE, initParallelParam, growParallelParam);
+    UnionFindDecoder ufDecoder = UnionFindDecoder(DISTANCE, ROUNDS, CODE_TYPE, initParallelParam, growParallelParam, earlyStoppingParam);
 
     ufDecoder.decode(syndromes);
 
@@ -199,7 +199,7 @@ int main()
 {
     // generate_validation_files();    
     // decode_specific(16484);
-    randomSyndromeDecoding(4, 4);
+    randomSyndromeDecoding(4, 4, -1);
 
     return 0;
 }
