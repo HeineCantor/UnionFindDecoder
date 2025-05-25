@@ -23,11 +23,31 @@ ERROR_RATE_STEP = 10
 ERROR_RATE_RANGE = np.linspace(MIN_ERROR_RATE, MAX_ERROR_RATE, ERROR_RATE_STEP)
 
 RESULTS_DIR = "results"
-RESULTS_PATH = f"{RESULTS_DIR}/experiment_results.csv"
+RESULTS_PATH = f"{RESULTS_DIR}/dse_experiment_results.csv"
 
-VALIDATE_WITH_QSURF = False
+def fromStim(stimSample, dem, distance):
+    rowLen = (distance - 1) // 2
+    columnLen = (distance + 1)
+    roundLen = rowLen * columnLen
 
-def sample_fromStim(stimSample, distance):
+    detCoords = dem.get_detector_coordinates()
+
+    input_sample = [0] * (roundLen * (distance + 1))
+    for i_bit, bit in enumerate(stimSample):
+        coords = detCoords[i_bit]
+        if bit and (coords[0] // 2) % 2 == (coords[1] // 2) % 2:
+            unrolledCoords = coords[2] * roundLen + (coords[1] // 2 - 1) * columnLen // 2 + coords[0] // 4
+            unrolledCoords = int(unrolledCoords)
+            input_sample[unrolledCoords] = 1
+
+    input_sample = rotate_fromStim(input_sample, distance)
+
+    return input_sample
+
+def rotate_fromStim(stimSample, distance):
+    """
+    This function takes an ordered syndrome and converts it to a rotated ordered syndrome.
+    """
     columnLength = (distance - 1) // 2
     period = (distance + 1) * columnLength
 
@@ -52,21 +72,16 @@ def sample_fromStim(stimSample, distance):
 
 def execExperiment():
     experimentFrame = pd.DataFrame(columns=["repetition", "distance", "base_error_rate", "num_grow_merge_iters", "boundaries_per_iter", "odd_clusters_per_iter", "merges_per_iter"])
-    validationAccuracyPrelimTest = pd.DataFrame(columns=["distance", "base_error_rate", "uf_arch_error_rate", "qsurf_deviation", "uf_arch_deviation", "test_total_deviation"])
-    ufArchAccuracyTest = pd.DataFrame(columns=["distance", "base_error_rate", "logical_error_rate"])
 
     for distance in DISTANCE_RANGE:
         for base_error_rate in ERROR_RATE_RANGE:
             error_count = 0
-            qSurfDeviation = 0
-            invDeviation = 0
-
-            print(f"Distance: {distance}, Base Error Rate: {base_error_rate}")
 
             errorModel = SuperconductiveEM(base_error_rate)
             stimErrorModel = errorModel.toStim()
 
-            ufDecoder = uf.UnionFindDecoder(distance, distance+1, uf.CodeType.ROTATED, 1, 1)
+            # rounds are distance + 1 because Stim always generates an additional final round
+            ufDecoder = uf.UnionFindDecoder(distance, distance+1, uf.CodeType.ROTATED)
 
             rotatedCode = stim.Circuit.generated(
                     "surface_code:rotated_memory_z",
@@ -78,47 +93,20 @@ def execExperiment():
                     after_reset_flip_probability=stimErrorModel["after_reset_flip_probability"],
                 )
 
-            # utils.saveSVG(rotatedCode, "detslice-svg", f"pictures/experiment_detslice.svg")
-            # utils.saveSVG(rotatedCode, "timeline-svg", f"pictures/experiment_timeline.svg")
-
             sampler = rotatedCode.compile_detector_sampler()
             samples, observables = sampler.sample(shots=SHOTS, separate_observables=True)
 
             dem = rotatedCode.detector_error_model()
-            detCoords = dem.get_detector_coordinates()
 
             for k, sample in enumerate(tqdm(samples)):
                 sample = list(sample)
 
-                rounds = distance + 1
-                rowLen = (distance - 1) // 2
-                columnLen = (distance + 1)
-                roundLen = rowLen * columnLen
-
-                dbg_triggerd = []
-
-                input_sample = [0] * (roundLen * (distance + 1))
-                for i_bit, bit in enumerate(sample):
-                    coords = detCoords[i_bit]
-                    if bit and (coords[0] // 2) % 2 == (coords[1] // 2) % 2:
-                        dbg_triggerd.append(coords)
-                        unrolledCoords = coords[2] * roundLen + (coords[1] // 2 - 1) * columnLen // 2 + coords[0] // 4
-                        unrolledCoords = int(unrolledCoords)
-                        input_sample[unrolledCoords] = 1
-
-                input_sample = sample_fromStim(input_sample, distance)
+                input_sample = fromStim(sample, dem, distance)
 
                 ufDecoder.decode(input_sample)
                 stats = ufDecoder.get_stats()
                 corrections = ufDecoder.get_horizontal_corrections()
 
-                qSurfParity = 0
-                qSurfCorrections = []
-                qSurfTriggered = []
-
-                if VALIDATE_WITH_QSURF:
-                    qSurfParity, qSurfCorrections, qSurfTriggered = utils.countLogicalErrors_uf_rotated_single_shot(dem, sample, observables[k])
-                
                 # parity means counting the number of corrections with coordinate [1] == 0
                 parity = 0
                 for correction in corrections:
@@ -127,10 +115,6 @@ def execExperiment():
 
                 if parity != observables[k]:
                     error_count += 1
-                    if qSurfParity != parity:
-                        qSurfDeviation += 1
-                elif qSurfParity != parity:
-                    invDeviation += 1
 
                 experimentFrame.loc[len(experimentFrame)] = {
                     "repetition": k,
@@ -146,80 +130,11 @@ def execExperiment():
             error_rate = error_count / SHOTS
             print(f"Accuracy (d={distance}, error_rate={base_error_rate}): {1-error_rate}")
 
-            if VALIDATE_WITH_QSURF:
-                print(f"QSurf is right, UFArch is wrong (d={distance}, error_rate={base_error_rate}): {qSurfDeviation / SHOTS}")
-                print(f"UFArch is right, QSurf is wrong (d={distance}, error_rate={base_error_rate}): {invDeviation / SHOTS}")
-                print(f"TEST Total Deviation(d={distance}, error_rate={base_error_rate}): {TEST_totalDeviaton / SHOTS}")
-            
-            ufArchAccuracyTest.loc[len(ufArchAccuracyTest)] = {
-                "distance": distance,
-                "base_error_rate": base_error_rate,
-                "logical_error_rate": error_rate
-            }
-
-            if VALIDATE_WITH_QSURF:
-                #print(f"Theoretical Accuracy (d={distance}, error_rate={base_error_rate}): {1-error_rate+qSurfDeviation/SHOTS}")
-                validationAccuracyPrelimTest.loc[len(validationAccuracyPrelimTest)] = {
-                    "distance": distance,
-                    "base_error_rate": base_error_rate,
-                    "uf_arch_error_rate": error_rate,
-                    "qsurf_deviation": qSurfDeviation / SHOTS,
-                    "uf_arch_deviation": invDeviation / SHOTS
-                }
-                validationAccuracyPrelimTest.to_csv(f"{RESULTS_DIR}/accuracy_prelim_test.csv", index=False)
-
             # Save the experimentFrame to a CSV file
             experimentFrame.to_csv(RESULTS_PATH, index=False)
-            ufArchAccuracyTest.to_csv(f"{RESULTS_DIR}/uf_arch_accuracy_test.csv", index=False)
 
     # Final saving
     experimentFrame.to_csv(RESULTS_PATH, index=False)
-    ufArchAccuracyTest.to_csv(f"{RESULTS_DIR}/uf_arch_accuracy_test.csv", index=False)
-
-    if VALIDATE_WITH_QSURF:
-        validationAccuracyPrelimTest.to_csv(f"{RESULTS_DIR}/accuracy_prelim_test.csv", index=False)
-
-def plotAccuracyValidationTest():
-    accuracyPrelimTest = pd.read_csv(f"{RESULTS_DIR}/accuracy_prelim_test.csv")
-
-    plt.figure()
-
-    for distance in DISTANCE_RANGE:
-        # Aggregate on repetitions
-        aggregatedFrame = accuracyPrelimTest[accuracyPrelimTest["distance"] == distance]
-        avgUFArchErrorRate = aggregatedFrame.groupby("base_error_rate")["uf_arch_error_rate"].mean()
-        
-        plt.plot(avgUFArchErrorRate.index, avgUFArchErrorRate.values, label=f"d={distance}")
-
-    plt.xlabel("SI1000 Base Error Rate")
-    plt.ylabel("UFArch Logical Error Rate")
-    plt.title(f"UFArch Error Rate vs Base Error Rate ({SHOTS} shots)")
-    plt.xticks(ERROR_RATE_RANGE)
-    plt.loglog()
-    plt.legend()
-    plt.grid()
-
-    plt.figure()
-
-    for distance in DISTANCE_RANGE:
-        # Aggregate on repetitions
-        aggregatedFrame = accuracyPrelimTest[accuracyPrelimTest["distance"] == distance]
-        avgQSurfDeviation = aggregatedFrame.groupby("base_error_rate")["qsurf_deviation"].mean()
-        avgInversionDeviation = aggregatedFrame.groupby("base_error_rate")["uf_arch_deviation"].mean()
-
-        # difference = avgQSurfDeviation - avgInversionDeviation
-        difference = avgQSurfDeviation - avgInversionDeviation
-        
-        plt.plot(difference.index, difference.values, label=f"d={distance}")
-
-    plt.xlabel("SI1000 Base Error Rate")
-    plt.ylabel("Prediciton Deviation")
-    plt.title(f"UFArch and QSurf Deviation vs Base Error Rate ({SHOTS} shots)")
-    plt.xticks(ERROR_RATE_RANGE)
-    plt.legend()
-    plt.grid()
-
-    plt.show()
 
 def plotExperimentResults():
     experimentFrame = pd.read_csv(RESULTS_PATH)
@@ -338,6 +253,6 @@ def plotExperimentResults():
     plt.show()
 
 if __name__ == "__main__":
-    #execExperiment()
+    execExperiment()
     #plotExperimentResults()
-    plotAccuracyValidationTest()
+    #plotAccuracyValidationTest()
