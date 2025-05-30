@@ -7,9 +7,10 @@ import math
 import uf_arch.uf_arch as uf
 
 class UFArchDecoder(sinter.Decoder):
-    def __init__(self, codeType: str):
+    def __init__(self, codeType: str, early_stopping_param: int = -1):
         super().__init__()
         self.codeType = codeType
+        self.early_stopping_param = early_stopping_param
 
     def decode_via_files(self,
                          *,
@@ -25,7 +26,7 @@ class UFArchDecoder(sinter.Decoder):
         detCoords = stim.DetectorErrorModel.from_file(dem_path).get_detector_coordinates()
         distance, rounds = getCodeParams(detCoords, self.codeType)
 
-        ufDecoder = uf.UnionFindDecoder(distance, distance+1, uf.CodeType.ROTATED, 1, 1)
+        ufDecoder = uf.UnionFindDecoder(distance, distance+1, uf.CodeType.ROTATED, 1, 1, self.early_stopping_param)
 
         packed_detection_event_data = np.fromfile(dets_b8_in_path, dtype=np.uint8)
         packed_detection_event_data.shape = (num_shots, math.ceil(num_dets / 8))

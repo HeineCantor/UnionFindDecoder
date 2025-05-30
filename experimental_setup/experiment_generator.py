@@ -8,7 +8,6 @@ from itertools import product
 # TODO: separare csv di esperimenti e risultati (perché?)
 class ExperimentGenerator():
     def generateDesign(
-            roundsAsDistance: bool = True, 
             profile: str = "full"
         ) -> pd.DataFrame:
         '''
@@ -19,8 +18,12 @@ class ExperimentGenerator():
         '''
 
         doeDataframe = pd.DataFrame()
-        
+
         selectedProfile = config.profiles[profile]
+
+        roundsAsDistance = True
+        if "roundsAsDistance" in selectedProfile:
+            roundsAsDistance = selectedProfile["roundsAsDistance"]
 
         subjectsDict = selectedProfile["subjects"]
         factorsDict = selectedProfile["factors"]
