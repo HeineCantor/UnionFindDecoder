@@ -2,7 +2,7 @@ from error_models.error_model import ErrorModel
 
 # Reference: https://arxiv.org/pdf/2409.14765
 class SuperconductiveEM(ErrorModel):
-    def __init__(self, base_error_rate = 0.01):
+    def __init__(self, base_error_rate = 0.04):
         super().__init__()
         self.name = f"SI1000 EM ({base_error_rate})"
 

@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 from experimental_setup import ExperimentGenerator, Experimenter, Plotter, config
 
-PROFILE_NAME = "preliminary_distance"
+PROFILE_NAME = "dse_full"
 TEST_DIR = "results"
 TEST_FILE = f"{TEST_DIR}/{PROFILE_NAME}.csv"
 
@@ -26,7 +26,7 @@ RUNTIME_HEADER = "runtime [s]"
 # =================================================================================================
 if __name__ == "__main__":
     if not os.path.exists(TEST_FILE):
-        testFrame = ExperimentGenerator.generateDesign(roundsAsDistance=True, profile=PROFILE_NAME)
+        testFrame = ExperimentGenerator.generateDesign(profile=PROFILE_NAME)
         if not os.path.exists(TEST_DIR):
             os.makedirs(TEST_DIR)
         ExperimentGenerator.saveDesign(testFrame, TEST_FILE)
@@ -39,7 +39,12 @@ if __name__ == "__main__":
         if not pd.isna(row[ERROR_RATE_HEADER]) and not pd.isna(row[RUNTIME_HEADER]):
             continue
 
-        error_rate, runtime = Experimenter.execExperimentFromRow(row)
+        if "dse" in PROFILE_NAME:
+            kwargs = {
+                "early_stopping_param": row.get("early_stopping", None)
+            }
+
+        error_rate, runtime = Experimenter.execExperimentFromRow(row, **kwargs)
 
         # Save the results to the testFrame
         testFrame.at[index, ERROR_RATE_HEADER] = error_rate
@@ -49,14 +54,27 @@ if __name__ == "__main__":
 
     # Results plotting
     testFrame = ExperimentGenerator.loadDesign(TEST_FILE)
+    # Plotter.plot(
+    #     testFrame,
+    #     fixedSubjects = { 
+    #         "decoder": [config.SPARSE_BLOSSOM_DECODER], 
+    #         "noiseModel": [config.SI1000_NOISE_MODEL] },
+    #     variableFactor = "distance",
+    #     variableSubject = "code",
+    #     responseVariable = ERROR_RATE_HEADER,
+    #     logScale = True
+    # )
     Plotter.plot(
         testFrame,
         fixedSubjects = { 
-            "decoder": [config.SPARSE_BLOSSOM_DECODER], 
-            "noiseModel": [config.SI1000_004_NOISE_MODEL] },
-        variableFactor = "distance",
+            "decoder": [config.UF_ARCH_DECODER], 
+            "noiseModel": [config.SI1000_NOISE_MODEL],
+            "distance": [31]
+        },
+        variableFactor = "early_stopping",
         variableSubject = "code",
         responseVariable = ERROR_RATE_HEADER,
+        secondaryVariableFactor = "base_error_rate",
         logScale = True
     )
     plt.show()

@@ -23,7 +23,8 @@ PYBIND11_MODULE(uf_arch, m)
         .def_readwrite("odd_clusters_per_iter", &Stats::odd_clusters_per_iter);
 
     py::class_<UnionFindDecoder>(m, "UnionFindDecoder")
-        .def(py::init<unsigned int, unsigned int, CodeType, int, int>())
+        .def(py::init<unsigned int, unsigned int, CodeType>())
+        .def(py::init<unsigned int, unsigned int, CodeType, int, int, int>())
         .def("decode", &UnionFindDecoder::decode)
         .def("initCluster", &UnionFindDecoder::initCluster)
         .def("grow", &UnionFindDecoder::grow)
