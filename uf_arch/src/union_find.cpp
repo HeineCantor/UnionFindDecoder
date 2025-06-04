@@ -394,6 +394,7 @@ void UnionFindDecoder::grow()
     grower(boundaries, localSize*(growParallelParam-1), boundaries.size() - localSize*(growParallelParam-1));
 }
 
+// TODO: grower -> boundary_grower
 void UnionFindDecoder::grower(std::vector<Edge*> boundaries, int offset, int size)
 {
     for (int i = 0; i < size; i++)
