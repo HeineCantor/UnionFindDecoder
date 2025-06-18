@@ -377,8 +377,6 @@ void UnionFindDecoder::grow()
 {
     union_list.clear();
 
-    std::vector<Edge*> boundaries;
-
     for (auto cluster : odd_clusters)
         boundaries.insert(boundaries.end(), cluster->boundary.begin(), cluster->boundary.end());
 

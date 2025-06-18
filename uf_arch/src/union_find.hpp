@@ -69,6 +69,7 @@ public:
 private:
     std::set<Node*> odd_clusters;
     std::vector<Edge*> union_list;
+    std::vector<Edge*> boundaries;
 
     unsigned int max_grown_count = 0;
 
