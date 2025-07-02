@@ -71,7 +71,7 @@ def rotate_fromStim(stimSample, distance):
     return stimSample
 
 def execExperiment():
-    experimentFrame = pd.DataFrame(columns=["repetition", "distance", "base_error_rate", "num_grow_merge_iters", "boundaries_per_iter", "odd_clusters_per_iter", "merges_per_iter"])
+    experimentFrame = pd.DataFrame(columns=["repetition", "distance", "base_error_rate", "num_grow_merge_iters", "boundaries_per_iter", "odd_clusters_per_iter", "merges_per_iter", "num_peeling_iters"])
 
     for distance in DISTANCE_RANGE:
         for base_error_rate in ERROR_RATE_RANGE:
@@ -124,6 +124,7 @@ def execExperiment():
                     "boundaries_per_iter": stats.boundaries_per_iter,
                     "odd_clusters_per_iter": stats.odd_clusters_per_iter,
                     "merges_per_iter": stats.merges_per_iter,
+                    "num_peeling_iters": stats.num_peeling_iters
                 }
 
             # Calculate the error rate
@@ -250,9 +251,39 @@ def plotExperimentResults():
     plt.legend()
     plt.grid()
 
+    plt.figure()
+
+    for distance in DISTANCE_RANGE:
+        aggregatedFrame = experimentFrame[experimentFrame["distance"] == distance]
+        peelingIters = aggregatedFrame.groupby("base_error_rate")["num_peeling_iters"].mean()
+        plt.plot(peelingIters.index, peelingIters.values, label=f"d={distance}")
+
+    plt.xlabel("Base Error Rate")
+    plt.ylabel("Average number of Peeling Iterations")
+    plt.title(f"Average number of Peeling Iterations vs Base Error Rate ({SHOTS} shots)")
+    plt.legend()
+    plt.grid()
+    plt.xticks(ERROR_RATE_RANGE)
+    plt.yticks(np.arange(0, peelingIters.max()+5, 2))
+
+    plt.figure()
+
+    for distance in DISTANCE_RANGE:
+        aggregatedFrame = experimentFrame[experimentFrame["distance"] == distance]
+        peelingIters = aggregatedFrame.groupby("base_error_rate")["num_peeling_iters"].max()
+        plt.plot(peelingIters.index, peelingIters.values, label=f"d={distance}")
+
+    plt.xlabel("Base Error Rate")
+    plt.ylabel("Max number of Peeling Iterations")
+    plt.title(f"Max number of Peeling Iterations vs Base Error Rate ({SHOTS} shots)")
+    plt.legend()
+    plt.grid()
+    plt.xticks(ERROR_RATE_RANGE)
+    plt.yticks(np.arange(0, peelingIters.max()+5, 2))
+
     plt.show()
 
 if __name__ == "__main__":
-    execExperiment()
-    #plotExperimentResults()
+    #execExperiment()
+    plotExperimentResults()
     #plotAccuracyValidationTest()

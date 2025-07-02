@@ -1,10 +1,11 @@
 #include "union_find.hpp"
 
-UnionFindDecoder::UnionFindDecoder(unsigned int distance, unsigned int rounds, CodeType codeType, int initParallelParam, int growParallelParam, int earlyStoppingParam)
+UnionFindDecoder::UnionFindDecoder(unsigned int distance, unsigned int rounds, CodeType codeType, int initParallelParam, int growParallelParam, int earlyStoppingParam, int earlyPeelingParam)
 {
     this->initParallelParam = initParallelParam;
     this->growParallelParam = growParallelParam;
     this->earlyStoppingParam = earlyStoppingParam;
+    this->earlyPeelingParam = earlyPeelingParam;
 
     this->distance = distance;
     this->rounds = rounds;
@@ -377,6 +378,8 @@ void UnionFindDecoder::grow()
 {
     union_list.clear();
 
+    std::vector<Edge*> boundaries;
+
     for (auto cluster : odd_clusters)
         boundaries.insert(boundaries.end(), cluster->boundary.begin(), cluster->boundary.end());
 
@@ -411,8 +414,10 @@ void UnionFindDecoder::grower(std::vector<Edge*> boundaries, int offset, int siz
 
 void UnionFindDecoder::peel()
 {
-    while (max_grown_count)
+    while (max_grown_count || (earlyPeelingParam >= 0 && stats.num_peeling_iters < earlyPeelingParam))
     {
+        stats.num_peeling_iters++;
+
         for (int i = 0; i < rounds * getEdgeRows() * getEdgeCols(); i++)
         {
             auto edge = &edge_support[i];

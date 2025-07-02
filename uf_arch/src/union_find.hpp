@@ -12,25 +12,33 @@
 struct Stats
 {
     int num_grow_merge_iters = 0;
+    int num_peeling_iters = 0;
 
     std::vector<int> boundaries_per_iter;
     std::vector<int> merges_per_iter;
     std::vector<int> odd_clusters_per_iter;
 
+    std::vector<int> peeling_clusters_per_iter;
+    std::vector<int> peeling_leaves_per_iter;
+
     void clear()
     {
         num_grow_merge_iters = 0;
+        num_peeling_iters = 0;
 
         boundaries_per_iter.clear();
         merges_per_iter.clear();
         odd_clusters_per_iter.clear();
+
+        peeling_clusters_per_iter.clear();
+        peeling_leaves_per_iter.clear();
     }
 };
 
 class UnionFindDecoder
 {
 public:
-    UnionFindDecoder(unsigned int distance, unsigned int rounds, CodeType codeType, int initParallelParam=1, int growParallelParam=1, int earlyStoppingParam=-1);
+    UnionFindDecoder(unsigned int distance, unsigned int rounds, CodeType codeType, int initParallelParam=1, int growParallelParam=1, int earlyStoppingParam=-1, int earlyPeelingParam=-1);
     ~UnionFindDecoder();
 
     void decode(std::vector<bool>& syndromes);
@@ -69,13 +77,13 @@ public:
 private:
     std::set<Node*> odd_clusters;
     std::vector<Edge*> union_list;
-    std::vector<Edge*> boundaries;
 
     unsigned int max_grown_count = 0;
 
     int initParallelParam;
     int growParallelParam;
     int earlyStoppingParam;
+    int earlyPeelingParam;
 
     Stats stats;
 
