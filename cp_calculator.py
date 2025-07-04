@@ -9,6 +9,7 @@ from math import ceil
 
 INIT_KERNEL_CP = 110
 GROW_KERNEL_CP = 11
+MERGE_KERNEL_CP = 70
 PEEL_KERNEL_CP = 21
 
 def Init_CP(I, d):
@@ -18,29 +19,29 @@ def Init_CP(I, d):
     return CP_Area, CP_Time
 
 def Grow_CP(G, E_GM, d):
-    CP_Area = G * GROW_KERNEL_CP * E_GM
-    CP_Time = max(d**3 // G, 1) * GROW_KERNEL_CP * E_GM
+    CP_Area = (G * GROW_KERNEL_CP + MERGE_KERNEL_CP) * E_GM
+    CP_Time = (max(d**3 // G, 1) * GROW_KERNEL_CP + MERGE_KERNEL_CP) * E_GM
 
     return CP_Area, CP_Time
 
-def Peel_CP(C, P, d):
-    CP_Area = C * P * PEEL_KERNEL_CP
-    CP_Time = max(d**3 // P, 1) * PEEL_KERNEL_CP * C
+def Peel_CP(C, P, E_P, d):
+    CP_Area = C * P * PEEL_KERNEL_CP * E_P
+    CP_Time = max(d**3 // (C * P), 1) * PEEL_KERNEL_CP * E_P
 
     return CP_Area, CP_Time
 
-def CP_Total(I, G, E_GM, C, P, d):
+def CP_Total(I, G, E_GM, C, P, E_P, d):
     init_area, init_time = Init_CP(I, d)
     grow_area, grow_time = Grow_CP(G, E_GM, d)
-    peel_area, peel_time = Peel_CP(C, P, d)
+    peel_area, peel_time = Peel_CP(C, P, E_P, d)
 
     total_area = init_area + grow_area + peel_area
     total_time = init_time + grow_time + peel_time
 
-    return I, G, E_GM, C, P, total_area, total_time
+    return I, G, E_GM, C, P, E_P, total_area, total_time
 
 
-outputFrame = pd.DataFrame(columns=['d', 'I', 'G', 'E_GM', 'C', 'P', 'Workload', 'Area', 'Time'])
+outputFrame = pd.DataFrame(columns=['d', 'I', 'G', 'E_GM', 'C', 'P', 'E_P', 'Workload', 'Area', 'Time'])
 
 for d in tqdm(range(1, 21 + 1, 2)):
     total_area = []
@@ -49,15 +50,15 @@ for d in tqdm(range(1, 21 + 1, 2)):
     I_range = range(1, ceil(d**3+1 / 10), ceil(d**2/2))
     G_range = range(1, d**2+1, ceil(d/2))
     E_GM_range = range(1, d+1)
+    E_P_range  = range(1, d+1)
     C_range = range(1, d+1)
-    # P_range = range(1, d**2+1, d)
-    P_range = range(1, 2)
+    P_range = range(1, d**2+1, d)
     
-    I_G_C_P = product(I_range, G_range, E_GM_range, C_range, P_range)
+    I_G_C_P = product(I_range, G_range, E_GM_range, C_range, P_range, E_P_range)
 
-    results = Parallel(n_jobs=-1)(delayed(CP_Total)(I, G, E_GM, C, P, d) for I, G, E_GM, C, P in I_G_C_P)
+    results = Parallel(n_jobs=-1)(delayed(CP_Total)(I, G, E_GM, C, P, E_P, d) for I, G, E_GM, C, P, E_P in I_G_C_P)
     for result in results:
-        I, G, E_GM, C, P, area, time = result
+        I, G, E_GM, C, P, E_P, area, time = result
         outputFrame = outputFrame._append({
             'd': d,
             'I': I,
@@ -65,11 +66,12 @@ for d in tqdm(range(1, 21 + 1, 2)):
             'E_GM': E_GM,
             'C': C,
             'P': P,
+            'E_P': E_P,
             'Workload': d**3,
             'Area': area,
             'Time': time
         }, ignore_index=True)
 
-    outputFrame.to_csv(f'cp_calculator_output.csv', index=False)
+    outputFrame.to_csv(f'results/cp_calculator_output.csv', index=False)
 
     
