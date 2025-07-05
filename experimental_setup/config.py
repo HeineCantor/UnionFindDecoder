@@ -45,7 +45,7 @@ CONSTANT_FACTORS_PRELIM_VARIANCE = {
 }
 
 CONSTANT_FACTORS_DSE = {
-    "shots" : 10**4,
+    "shots" : 10**5,
 }
 
 #   === Variable Factors ===
@@ -68,10 +68,20 @@ FACTORS_PRELIM_ROUNDS = {
 
 FACTORS_PRELIM_VARIANCE = {}
 
+DSE_FACTORS_PEELING_ONLY = {
+    # "distance" : range(3, 31 + 1, 2),
+    # "base_error_rate" : np.linspace(0.001, 0.01, 10).tolist(),
+    # "early_stopping_peeling" : range(3, 31+1, 2),
+    "distance" : range(3, 31 + 1, 2),
+    "base_error_rate" : np.linspace(0.001, 0.01, 10).tolist(),
+    "early_stopping_peeling" : range(3, 31 + 1, 2),
+}
+
 DSE_FACTORS = {
     "distance" : range(3, 31 + 1, 2),
     "base_error_rate" : np.linspace(0.001, 0.01, 10).tolist(),
-    "early_stopping" : range(2, 30+1, 2),
+    "early_stopping" : range(3, 31+1, 2),
+    "early_stopping_peeling" : range(3, 31+1, 2),
 }
 
 # === Response Variables ===
@@ -163,6 +173,14 @@ profiles = {
     "dse_full" : {
         "subjects" : SUBJECTS_DSE,
         "factors" : DSE_FACTORS,
+        "constant_factors" : CONSTANT_FACTORS_DSE,
+        "repetitions" : REPETITIONS,
+        "response_variables" : RESPONSE_VARIABLES,
+        "rounds_as_distance" : True
+    },
+    "dse_peeling_only" : {
+        "subjects" : SUBJECTS_DSE,
+        "factors" : DSE_FACTORS_PEELING_ONLY,
         "constant_factors" : CONSTANT_FACTORS_DSE,
         "repetitions" : REPETITIONS,
         "response_variables" : RESPONSE_VARIABLES,

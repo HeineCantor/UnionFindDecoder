@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 from experimental_setup import ExperimentGenerator, Experimenter, Plotter, config
 
-PROFILE_NAME = "dse_full"
+PROFILE_NAME = "dse_peeling_only"
 TEST_DIR = "results"
 TEST_FILE = f"{TEST_DIR}/{PROFILE_NAME}.csv"
 
@@ -40,9 +40,11 @@ if __name__ == "__main__":
             continue
 
         if "dse" in PROFILE_NAME:
-            kwargs = {
-                "early_stopping_param": row.get("early_stopping", None)
-            }
+            kwargs = dict()
+            if "early_stopping" in row:
+                kwargs["early_stopping_param"] = row["early_stopping"]
+            if "early_stopping_peeling" in row:
+                kwargs["early_stopping_peeling_param"] = row["early_stopping_peeling"]
 
         error_rate, runtime = Experimenter.execExperimentFromRow(row, **kwargs)
 
@@ -69,9 +71,9 @@ if __name__ == "__main__":
         fixedSubjects = { 
             "decoder": [config.UF_ARCH_DECODER], 
             "noiseModel": [config.SI1000_NOISE_MODEL],
-            "distance": [31]
+            "distance": [21]
         },
-        variableFactor = "early_stopping",
+        variableFactor = "early_stopping_peeling",
         variableSubject = "code",
         responseVariable = ERROR_RATE_HEADER,
         secondaryVariableFactor = "base_error_rate",
