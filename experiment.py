@@ -4,11 +4,11 @@ import matplotlib.pyplot as plt
 
 from experimental_setup import ExperimentGenerator, Experimenter, Plotter, config
 
-PROFILE_NAME = "dse_peeling_only"
+PROFILE_NAME = "uf_arch_vs_sparse_blossom"
 TEST_DIR = "results"
 TEST_FILE = f"{TEST_DIR}/{PROFILE_NAME}.csv"
 
-ERROR_RATE_HEADER = "error_rate"
+ERROR_RATE_HEADER = "logical_error_rate"
 RUNTIME_HEADER = "runtime [s]"
 
 
@@ -39,8 +39,8 @@ if __name__ == "__main__":
         if not pd.isna(row[ERROR_RATE_HEADER]) and not pd.isna(row[RUNTIME_HEADER]):
             continue
 
+        kwargs = dict()
         if "dse" in PROFILE_NAME:
-            kwargs = dict()
             if "early_stopping" in row:
                 kwargs["early_stopping_param"] = row["early_stopping"]
             if "early_stopping_peeling" in row:
@@ -56,27 +56,28 @@ if __name__ == "__main__":
 
     # Results plotting
     testFrame = ExperimentGenerator.loadDesign(TEST_FILE)
-    # Plotter.plot(
-    #     testFrame,
-    #     fixedSubjects = { 
-    #         "decoder": [config.SPARSE_BLOSSOM_DECODER], 
-    #         "noiseModel": [config.SI1000_NOISE_MODEL] },
-    #     variableFactor = "distance",
-    #     variableSubject = "code",
-    #     responseVariable = ERROR_RATE_HEADER,
-    #     logScale = True
-    # )
     Plotter.plot(
         testFrame,
         fixedSubjects = { 
             "decoder": [config.UF_ARCH_DECODER], 
-            "noiseModel": [config.SI1000_NOISE_MODEL],
-            "distance": [21]
-        },
-        variableFactor = "early_stopping_peeling",
+            "noiseModel": [config.SI1000_NOISE_MODEL] },
+        variableFactor = "base_error_rate",
         variableSubject = "code",
-        responseVariable = ERROR_RATE_HEADER,
-        secondaryVariableFactor = "base_error_rate",
+        responseVariable = RUNTIME_HEADER,
+        secondaryVariableFactor = "distance",
         logScale = True
     )
+    # Plotter.plot(
+    #     testFrame,
+    #     fixedSubjects = { 
+    #         "decoder": [config.UF_ARCH_DECODER], 
+    #         "noiseModel": [config.SI1000_NOISE_MODEL],
+    #         "distance": [29]
+    #     },
+    #     variableFactor = "early_stopping_peeling",
+    #     variableSubject = "code",
+    #     responseVariable = ERROR_RATE_HEADER,
+    #     secondaryVariableFactor = "base_error_rate",
+    #     logScale = True
+    # )
     plt.show()

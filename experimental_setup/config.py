@@ -51,7 +51,7 @@ CONSTANT_FACTORS_DSE = {
 #   === Variable Factors ===
 FACTORS = { 
     "distance" : range(3, 31 + 1, 2),
-    "rounds" : range(25, 100 + 1, 25)
+    "rounds" : range(25, 100 + 1, 25),
 }
 
 FACTORS_PRELIM_DISTANCE = {
@@ -72,9 +72,9 @@ DSE_FACTORS_PEELING_ONLY = {
     # "distance" : range(3, 31 + 1, 2),
     # "base_error_rate" : np.linspace(0.001, 0.01, 10).tolist(),
     # "early_stopping_peeling" : range(3, 31+1, 2),
-    "distance" : range(3, 31 + 1, 2),
+    "distance" : [9, 19, 29],
     "base_error_rate" : np.linspace(0.001, 0.01, 10).tolist(),
-    "early_stopping_peeling" : range(3, 31 + 1, 2),
+    "early_stopping_peeling" : range(3, 29 + 1, 2),
 }
 
 DSE_FACTORS = {
@@ -163,6 +163,22 @@ profiles = {
         "repetitions" : REPETITIONS_PRELIM_VARIANCE,
         "response_variables" : RESPONSE_VARIABLES
     },
+    "uf_arch_vs_sparse_blossom" : {
+        "subjects" : {
+            "code" : [ ROTATED_SURFACE_CODE ],
+            "decoder" : [ SPARSE_BLOSSOM_DECODER, UF_ARCH_DECODER ],
+            "noiseModel" : [ SI1000_NOISE_MODEL ]
+        },
+        "factors" : {
+            "distance" : range(3, 27 + 1, 2),
+            "base_error_rate" : np.linspace(0.001, 0.01, 10).tolist(),
+        },
+        "constant_factors" : {
+            "shots" : 10**5
+        },
+        "repetitions" : 1,
+        "response_variables" : RESPONSE_VARIABLES
+    },
     "full" : {
         "subjects" : SUBJECTS,
         "factors" : FACTORS,
@@ -179,6 +195,14 @@ profiles = {
         "rounds_as_distance" : True
     },
     "dse_peeling_only" : {
+        "subjects" : SUBJECTS_DSE,
+        "factors" : DSE_FACTORS_PEELING_ONLY,
+        "constant_factors" : CONSTANT_FACTORS_DSE,
+        "repetitions" : REPETITIONS,
+        "response_variables" : RESPONSE_VARIABLES,
+        "rounds_as_distance" : True
+    },
+        "dse_peeling_only_quick" : {
         "subjects" : SUBJECTS_DSE,
         "factors" : DSE_FACTORS_PEELING_ONLY,
         "constant_factors" : CONSTANT_FACTORS_DSE,

@@ -24,7 +24,7 @@ decoderDict = {
     "uf_arch": "uf_arch"
 }
 
-CORES = 8
+CORES = 16
 
 class Experimenter():
     def execExperiment(distanceList, shotsList, roundsList, errorRate, codeType, decoder, noiseModel : ErrorModel, **kwargs):
@@ -39,6 +39,7 @@ class Experimenter():
         stimNoiseModel = noiseModel.toStim()
         
         early_stopping_param = -1
+        early_stopping_peeling_param = -1
         if "early_stopping_param" in kwargs:
             early_stopping_param = kwargs["early_stopping_param"]
             if early_stopping_param is None:
