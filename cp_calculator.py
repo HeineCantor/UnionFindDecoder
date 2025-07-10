@@ -1,3 +1,4 @@
+import matplotlib
 import matplotlib.pyplot as plt
 import pandas as pd
 
@@ -40,38 +41,112 @@ def CP_Total(I, G, E_GM, C, P, E_P, d):
 
     return I, G, E_GM, C, P, E_P, total_area, total_time
 
+def CP_Total_dict(factorsDict, d):
+    I = factorsDict['I']
+    G = factorsDict['G']
+    E_GM = factorsDict['E_GM']
+    C = factorsDict['C']
+    P = factorsDict['P']
+    E_P = factorsDict['E_P']
 
-outputFrame = pd.DataFrame(columns=['d', 'I', 'G', 'E_GM', 'C', 'P', 'E_P', 'Workload', 'Area', 'Time'])
+    return CP_Total(I, G, E_GM, C, P, E_P, d)
 
-for d in tqdm(range(1, 21 + 1, 2)):
-    total_area = []
-    total_time = [] 
-    
-    I_range = range(1, ceil(d**3+1 / 10), ceil(d**2/2))
-    G_range = range(1, d**2+1, ceil(d/2))
-    E_GM_range = range(1, d+1)
-    E_P_range  = range(1, d+1)
-    C_range = range(1, d+1)
-    P_range = range(1, d**2+1, d)
-    
-    I_G_C_P = product(I_range, G_range, E_GM_range, C_range, P_range, E_P_range)
+def get_range_from_factor(factor, d):
+    if factor == 'I':
+        return range(1, ceil(d**3 + 1 / 10))
+    elif factor == 'G':
+        return range(1, d**2 + 1)
+    elif factor == 'E_GM':
+        return range(1, d + 1)
+    elif factor == 'C':
+        return range(1, d + 1)
+    elif factor == 'P':
+        return range(1, d**2 + 1)
+    elif factor == 'E_P':
+        return range(1, d + 1)
+    else:
+        raise ValueError(f"Unknown factor: {factor}")
 
-    results = Parallel(n_jobs=-1)(delayed(CP_Total)(I, G, E_GM, C, P, E_P, d) for I, G, E_GM, C, P, E_P in I_G_C_P)
-    for result in results:
-        I, G, E_GM, C, P, E_P, area, time = result
-        outputFrame = outputFrame._append({
-            'd': d,
-            'I': I,
-            'G': G,
-            'E_GM': E_GM,
-            'C': C,
-            'P': P,
-            'E_P': E_P,
-            'Workload': d**3,
-            'Area': area,
-            'Time': time
-        }, ignore_index=True)
+def full_factorial_exp():
+    outputFrame = pd.DataFrame(columns=['d', 'I', 'G', 'E_GM', 'C', 'P', 'E_P', 'Workload', 'Area', 'Time'])
 
-    outputFrame.to_csv(f'results/cp_calculator_output.csv', index=False)
+    for d in tqdm(range(1, 21 + 1, 2)):
+        total_area = []
+        total_time = [] 
+        
+        I_range = range(1, ceil(d**3+1 / 10), ceil(d**2/2))
+        G_range = range(1, d**2+1, ceil(d/2))
+        E_GM_range = range(1, d+1)
+        E_P_range  = range(1, d+1)
+        C_range = range(1, d+1)
+        P_range = range(1, d**2+1, d)
+        
+        I_G_C_P = product(I_range, G_range, E_GM_range, C_range, P_range, E_P_range)
 
-    
+        results = Parallel(n_jobs=-1)(delayed(CP_Total)(I, G, E_GM, C, P, E_P, d) for I, G, E_GM, C, P, E_P in I_G_C_P)
+        for result in results:
+            I, G, E_GM, C, P, E_P, area, time = result
+            outputFrame = outputFrame._append({
+                'd': d,
+                'I': I,
+                'G': G,
+                'E_GM': E_GM,
+                'C': C,
+                'P': P,
+                'E_P': E_P,
+                'Workload': d**3,
+                'Area': area,
+                'Time': time
+            }, ignore_index=True)
+
+        outputFrame.to_csv(f'results/cp_calculator_output.csv', index=False)
+
+def single_factor_plot(distance, factor):
+    factor_range = get_range_from_factor(factor, distance)
+
+    factors_dict = {
+        'I': 1,
+        'G': 1,
+        'E_GM': 1,
+        'C': 1,
+        'P': 1,
+        'E_P': 1
+    }
+
+    factors_dict[factor] = factor_range
+    cp_area, cp_time = [], []
+
+    for value in factor_range:
+        factors_dict[factor] = value
+        area, time = CP_Total_dict(factors_dict, distance)[-2:]
+        cp_area.append(area)
+        cp_time.append(time)
+
+    font = {'family' : 'normal',
+            'size'   : 12}
+
+    matplotlib.rc('font', **font)
+
+    plt.figure(figsize=(12, 6))
+
+    plt.subplot(1, 2, 1)
+    plt.plot(factor_range, cp_area)
+    plt.title(f'CP Area vs {factor} (d={distance})')
+    plt.xlabel(factor)
+    plt.ylabel('Area')
+    plt.grid()
+
+    plt.subplot(1, 2, 2)
+    plt.plot(factor_range, cp_time)
+    plt.title(f'CP Time vs {factor} (d={distance})')
+    plt.xlabel(factor)
+    plt.ylabel('Time')
+    plt.grid()
+
+if __name__ == "__main__":
+    distance = 21
+
+    for factor in ['I', 'G', 'E_GM', 'C', 'P', 'E_P']:
+        single_factor_plot(distance, factor)
+
+    plt.show()
