@@ -140,7 +140,8 @@ def execExperiment():
 def plotExperimentResults():
     experimentFrame = pd.read_csv(RESULTS_PATH)
 
-    plt.figure()
+    fig = plt.figure()
+    fig.set_dpi(180)
 
     for distance in DISTANCE_RANGE:
         # Aggregate on repetitions
@@ -148,7 +149,7 @@ def plotExperimentResults():
         avgGrowMergeIters = aggregatedFrame.groupby("base_error_rate")["num_grow_merge_iters"].mean()
         #maxGrowMergeIters = aggregatedFrame.groupby("base_error_rate")["num_grow_merge_iters"].max()
         
-        plt.plot(avgGrowMergeIters.index, avgGrowMergeIters.values, label=f"d={distance}")
+        plt.plot(avgGrowMergeIters.index, avgGrowMergeIters.values, label=f"d={distance}", marker='o')
 
     plt.xlabel("Base Error Rate")
     plt.ylabel("Average number of Grow-Merge Iterations")
@@ -157,14 +158,15 @@ def plotExperimentResults():
     plt.legend()
     plt.grid()
 
-    plt.figure()
+    fig = plt.figure()
+    fig.set_dpi(180)
 
     for distance in DISTANCE_RANGE:
         # Aggregate on repetitions
         aggregatedFrame = experimentFrame[experimentFrame["distance"] == distance]
         maxGrowMergeIters = aggregatedFrame.groupby("base_error_rate")["num_grow_merge_iters"].max()
         
-        plt.plot(maxGrowMergeIters.index, maxGrowMergeIters.values, label=f"d={distance}")
+        plt.plot(maxGrowMergeIters.index, maxGrowMergeIters.values, label=f"d={distance}", marker='o')
 
     plt.xlabel("Base Error Rate")
     plt.ylabel("Max number of Grow-Merge Iterations")
@@ -173,7 +175,8 @@ def plotExperimentResults():
     plt.legend()
     plt.grid()
 
-    plt.figure()
+    fig = plt.figure()
+    fig.set_dpi(180)
 
     for distance in DISTANCE_RANGE:
         # Aggregate on repetitions
@@ -189,7 +192,7 @@ def plotExperimentResults():
             collection = [x + [0] * (maxLength - len(x)) for x in collection]
             collection = np.array(collection)
             avgBoundariesPerIter = np.mean(collection, axis=0)
-            plt.plot(avgBoundariesPerIter, label=f"d={distance}")
+            plt.plot(avgBoundariesPerIter, label=f"d={distance}", marker='o')
             current_error_rate = boundariesPerIter.index[0]
             break
 
@@ -199,7 +202,8 @@ def plotExperimentResults():
     plt.legend()
     plt.grid()
 
-    plt.figure()
+    fig = plt.figure()
+    fig.set_dpi(180)
 
     for distance in DISTANCE_RANGE:
         # Aggregate on repetitions
@@ -215,7 +219,7 @@ def plotExperimentResults():
             collection = [x + [0] * (maxLength - len(x)) for x in collection]
             collection = np.array(collection)
             avgBoundariesPerIter = np.mean(collection, axis=0)
-            plt.plot(avgBoundariesPerIter, label=f"d={distance}")
+            plt.plot(avgBoundariesPerIter, label=f"d={distance}", marker='o')
             current_error_rate = boundariesPerIter.index[0]
             break
 
@@ -225,7 +229,8 @@ def plotExperimentResults():
     plt.legend()
     plt.grid()
 
-    plt.figure()
+    fig = plt.figure()
+    fig.set_dpi(180)
 
     for distance in DISTANCE_RANGE:
         # Aggregate on repetitions
@@ -241,7 +246,7 @@ def plotExperimentResults():
             collection = [x + [0] * (maxLength - len(x)) for x in collection]
             collection = np.array(collection)
             avgBoundariesPerIter = np.mean(collection, axis=0)
-            plt.plot(avgBoundariesPerIter, label=f"d={distance}")
+            plt.plot(avgBoundariesPerIter, label=f"d={distance}", marker='o')
             current_error_rate = boundariesPerIter.index[0]
             break
 
@@ -251,12 +256,13 @@ def plotExperimentResults():
     plt.legend()
     plt.grid()
 
-    plt.figure()
+    fig = plt.figure()
+    fig.set_dpi(180)
 
     for distance in DISTANCE_RANGE:
         aggregatedFrame = experimentFrame[experimentFrame["distance"] == distance]
         peelingIters = aggregatedFrame.groupby("base_error_rate")["num_peeling_iters"].mean()
-        plt.plot(peelingIters.index, peelingIters.values, label=f"d={distance}")
+        plt.plot(peelingIters.index, peelingIters.values, label=f"d={distance}", marker='o')
 
     plt.xlabel("Base Error Rate")
     plt.ylabel("Average number of Peeling Iterations")
@@ -266,12 +272,13 @@ def plotExperimentResults():
     plt.xticks(ERROR_RATE_RANGE)
     plt.yticks(np.arange(0, peelingIters.max()+5, 2))
 
-    plt.figure()
+    fig = plt.figure()
+    fig.set_dpi(180)
 
     for distance in DISTANCE_RANGE:
         aggregatedFrame = experimentFrame[experimentFrame["distance"] == distance]
         peelingIters = aggregatedFrame.groupby("base_error_rate")["num_peeling_iters"].max()
-        plt.plot(peelingIters.index, peelingIters.values, label=f"d={distance}")
+        plt.plot(peelingIters.index, peelingIters.values, label=f"d={distance}", marker='o')
 
     plt.xlabel("Base Error Rate")
     plt.ylabel("Max number of Peeling Iterations")
