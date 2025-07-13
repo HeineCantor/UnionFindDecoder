@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 from experimental_setup import ExperimentGenerator, Experimenter, Plotter, config
 
-PROFILE_NAME = "dse_full"
+PROFILE_NAME = "dse_gm_only"
 TEST_DIR = "results"
 TEST_FILE = f"{TEST_DIR}/{PROFILE_NAME}.csv"
 

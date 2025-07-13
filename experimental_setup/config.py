@@ -77,6 +77,12 @@ DSE_FACTORS_PEELING_ONLY = {
     "early_stopping_peeling" : range(3, 27 + 1, 2),
 }
 
+DSE_FACTORS_GM_ONLY = {
+    "distance" : [7, 17, 27],
+    "base_error_rate" : np.linspace(0.001, 0.01, 10).tolist(),
+    "early_stopping" : range(3, 27 + 1, 2),
+}
+
 DSE_FACTORS = {
     "distance" : range(3, 31 + 1, 2),
     "base_error_rate" : np.linspace(0.001, 0.01, 10).tolist(),
@@ -197,6 +203,14 @@ profiles = {
     "dse_peeling_only" : {
         "subjects" : SUBJECTS_DSE,
         "factors" : DSE_FACTORS_PEELING_ONLY,
+        "constant_factors" : CONSTANT_FACTORS_DSE,
+        "repetitions" : REPETITIONS,
+        "response_variables" : RESPONSE_VARIABLES,
+        "rounds_as_distance" : True
+    },
+    "dse_gm_only" : {
+        "subjects" : SUBJECTS_DSE,
+        "factors" : DSE_FACTORS_GM_ONLY,
         "constant_factors" : CONSTANT_FACTORS_DSE,
         "repetitions" : REPETITIONS,
         "response_variables" : RESPONSE_VARIABLES,
