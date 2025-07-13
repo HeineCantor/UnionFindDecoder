@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 from experimental_setup import ExperimentGenerator, Experimenter, Plotter, config
 
-PROFILE_NAME = "uf_arch_vs_sparse_blossom"
+PROFILE_NAME = "dse_full"
 TEST_DIR = "results"
 TEST_FILE = f"{TEST_DIR}/{PROFILE_NAME}.csv"
 
@@ -56,28 +56,28 @@ if __name__ == "__main__":
 
     # Results plotting
     testFrame = ExperimentGenerator.loadDesign(TEST_FILE)
-    Plotter.plot(
-        testFrame,
-        fixedSubjects = { 
-            "decoder": [config.UF_ARCH_DECODER], 
-            "noiseModel": [config.SI1000_NOISE_MODEL] },
-        variableFactor = "base_error_rate",
-        variableSubject = "code",
-        responseVariable = RUNTIME_HEADER,
-        secondaryVariableFactor = "distance",
-        logScale = True
-    )
     # Plotter.plot(
     #     testFrame,
     #     fixedSubjects = { 
     #         "decoder": [config.UF_ARCH_DECODER], 
-    #         "noiseModel": [config.SI1000_NOISE_MODEL],
-    #         "distance": [29]
-    #     },
-    #     variableFactor = "early_stopping_peeling",
+    #         "noiseModel": [config.SI1000_NOISE_MODEL] },
+    #     variableFactor = "base_error_rate",
     #     variableSubject = "code",
-    #     responseVariable = ERROR_RATE_HEADER,
-    #     secondaryVariableFactor = "base_error_rate",
+    #     responseVariable = RUNTIME_HEADER,
+    #     secondaryVariableFactor = "distance",
     #     logScale = True
     # )
+    Plotter.plot(
+        testFrame,
+        fixedSubjects = { 
+            "decoder": [config.UF_ARCH_DECODER], 
+            "noiseModel": [config.SI1000_NOISE_MODEL],
+            "distance": [27]
+        },
+        variableFactor = "early_stopping_peeling",
+        variableSubject = "code",
+        responseVariable = ERROR_RATE_HEADER,
+        secondaryVariableFactor = "base_error_rate",
+        logScale = True
+    )
     plt.show()
