@@ -8,4 +8,5 @@ IPython
 pymatching~=2.0
 tqdm
 sinter~=1.14
+pandas
 # qSurface not included bc of custom dev version
