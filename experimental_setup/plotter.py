@@ -12,11 +12,11 @@ class Plotter():
              secondaryVariableFactor: str = None,
              logScale: bool = False):
         fig = plt.figure()
-        plt.title(f"{responseVariable} by {variableFactor} | Fixed: {fixedSubjects}", fontsize=20)
-        plt.xlabel(f"{variableFactor}", fontsize=18)
-        plt.ylabel(f"{responseVariable}", fontsize=18)
-        plt.xticks(fontsize=16)
-        plt.yticks(fontsize=16)
+        plt.title(f"{responseVariable} by {variableFactor} | Fixed: {fixedSubjects}", fontsize=16)
+        plt.xlabel(f"{variableFactor}", fontsize=14)
+        plt.ylabel(f"{responseVariable}", fontsize=14)
+        plt.xticks(fontsize=12)
+        plt.yticks(fontsize=12)
         
         filteredFrame = resultsFrame
         for subject, value in fixedSubjects.items():
