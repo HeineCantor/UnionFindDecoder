@@ -414,8 +414,11 @@ void UnionFindDecoder::grower(std::vector<Edge*> boundaries, int offset, int siz
 
 void UnionFindDecoder::peel()
 {
-    while (max_grown_count || (earlyPeelingParam >= 0 && stats.num_peeling_iters < earlyPeelingParam))
+    while (max_grown_count)
     {
+        if (earlyPeelingParam >= 0 && stats.num_peeling_iters >= earlyPeelingParam)
+            break;
+
         stats.num_peeling_iters++;
 
         for (int i = 0; i < rounds * getEdgeRows() * getEdgeCols(); i++)
