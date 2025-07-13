@@ -72,9 +72,9 @@ DSE_FACTORS_PEELING_ONLY = {
     # "distance" : range(3, 31 + 1, 2),
     # "base_error_rate" : np.linspace(0.001, 0.01, 10).tolist(),
     # "early_stopping_peeling" : range(3, 31+1, 2),
-    "distance" : [9, 19, 29],
+    "distance" : [7, 17, 27],
     "base_error_rate" : np.linspace(0.001, 0.01, 10).tolist(),
-    "early_stopping_peeling" : range(3, 29 + 1, 2),
+    "early_stopping_peeling" : range(3, 27 + 1, 2),
 }
 
 DSE_FACTORS = {
@@ -85,7 +85,7 @@ DSE_FACTORS = {
 }
 
 # === Response Variables ===
-ERROR_RATE_RESPONSE_VARIABLE = "error_rate"
+ERROR_RATE_RESPONSE_VARIABLE = "logical_error_rate"
 RUNTIME_RESPONSE_VARIABLE = "runtime [s]"
 
 # === Collections ===
