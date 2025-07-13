@@ -5,6 +5,8 @@ import pandas as pd
 from joblib import Parallel, delayed
 from itertools import product
 
+import numpy as np
+
 from tqdm import tqdm
 from math import ceil
 
@@ -27,7 +29,7 @@ def Grow_CP(G, E_GM, d):
 
 def Peel_CP(C, P, E_P, d):
     CP_Area = C * P * PEEL_KERNEL_CP * E_P
-    CP_Time = max(d**3 // (C * P), 1) * PEEL_KERNEL_CP * E_P
+    CP_Time = max((max(d**3 // P, 1) // C), 1) * PEEL_KERNEL_CP * E_P
 
     return CP_Area, CP_Time
 
@@ -51,21 +53,37 @@ def CP_Total_dict(factorsDict, d):
 
     return CP_Total(I, G, E_GM, C, P, E_P, d)
 
-def get_range_from_factor(factor, d):
-    if factor == 'I':
-        return range(1, ceil(d**3 + 1 / 10))
-    elif factor == 'G':
-        return range(1, d**2 + 1)
-    elif factor == 'E_GM':
-        return range(1, d + 1)
-    elif factor == 'C':
-        return range(1, d + 1)
-    elif factor == 'P':
-        return range(1, d**2 + 1)
-    elif factor == 'E_P':
-        return range(1, d + 1)
+def get_range_from_factor(factor, d, steps=None):
+    if steps is None:
+        if factor == 'I':
+            return range(1, ceil((d**3 + 1) / 10))
+        elif factor == 'G':
+            return range(1, d**2 + 1)
+        elif factor == 'E_GM':
+            return range(1, d + 1)
+        elif factor == 'C':
+            return range(1, d + 1)
+        elif factor == 'P':
+            return range(1, d**2 + 1)
+        elif factor == 'E_P':
+            return range(1, d + 1)
+        else:
+            raise ValueError(f"Unknown factor: {factor}")
     else:
-        raise ValueError(f"Unknown factor: {factor}")
+        if factor == 'I':
+            return np.linspace(1, ceil((d**3 + 1) / 10), steps, dtype=int).tolist()
+        elif factor == 'G':
+            return np.linspace(1, d**2 + 1, steps, dtype=int).tolist()
+        elif factor == 'E_GM':
+            return np.linspace(1, d + 1, steps, dtype=int).tolist()
+        elif factor == 'C':
+            return np.linspace(1, d + 1, steps, dtype=int).tolist()
+        elif factor == 'P':
+            return np.linspace(1, d**2 + 1, steps, dtype=int).tolist()
+        elif factor == 'E_P':
+            return np.linspace(1, d + 1, steps, dtype=int).tolist()
+        else:
+            raise ValueError(f"Unknown factor: {factor}")
 
 def full_factorial_exp():
     outputFrame = pd.DataFrame(columns=['d', 'I', 'G', 'E_GM', 'C', 'P', 'E_P', 'Workload', 'Area', 'Time'])
@@ -101,8 +119,8 @@ def full_factorial_exp():
 
         outputFrame.to_csv(f'results/cp_calculator_output.csv', index=False)
 
-def single_factor_plot(distance, factor):
-    factor_range = get_range_from_factor(factor, distance)
+def single_factor_plot(distance, factor, steps=None):
+    factor_range = get_range_from_factor(factor, distance, steps)
 
     factors_dict = {
         'I': 1,
@@ -129,24 +147,26 @@ def single_factor_plot(distance, factor):
 
     plt.figure(figsize=(12, 6))
 
-    plt.subplot(1, 2, 1)
-    plt.plot(factor_range, cp_area)
+    splot = plt.subplot(1, 2, 1)
+    plt.plot(factor_range, cp_area, marker='o', color='blue')
     plt.title(f'CP Area vs {factor} (d={distance})')
     plt.xlabel(factor)
     plt.ylabel('Area')
     plt.grid()
+    splot.figure.set_dpi(180)
 
-    plt.subplot(1, 2, 2)
-    plt.plot(factor_range, cp_time)
+    splot = plt.subplot(1, 2, 2)
+    plt.plot(factor_range, cp_time, marker='o', color='orange')
     plt.title(f'CP Time vs {factor} (d={distance})')
     plt.xlabel(factor)
     plt.ylabel('Time')
     plt.grid()
+    splot.figure.set_dpi(180)
 
 if __name__ == "__main__":
     distance = 21
 
     for factor in ['I', 'G', 'E_GM', 'C', 'P', 'E_P']:
-        single_factor_plot(distance, factor)
+        single_factor_plot(distance, factor, 30)
 
     plt.show()
