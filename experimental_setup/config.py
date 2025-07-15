@@ -180,7 +180,7 @@ profiles = {
             "base_error_rate" : np.linspace(0.001, 0.01, 10).tolist(),
         },
         "constant_factors" : {
-            "shots" : 10**5
+            "shots" : 10**6
         },
         "repetitions" : 1,
         "response_variables" : RESPONSE_VARIABLES

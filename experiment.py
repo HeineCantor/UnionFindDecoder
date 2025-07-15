@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 from experimental_setup import ExperimentGenerator, Experimenter, Plotter, config
 
-PROFILE_NAME = "dse_gm_only"
+PROFILE_NAME = "dse_peeling_only"
 TEST_DIR = "results"
 TEST_FILE = f"{TEST_DIR}/{PROFILE_NAME}.csv"
 
@@ -63,21 +63,29 @@ if __name__ == "__main__":
     #         "noiseModel": [config.SI1000_NOISE_MODEL] },
     #     variableFactor = "base_error_rate",
     #     variableSubject = "code",
-    #     responseVariable = RUNTIME_HEADER,
+    #     responseVariable = ERROR_RATE_HEADER,
     #     secondaryVariableFactor = "distance",
-    #     logScale = True
+    #     logScaleY = True,
+    #     logScaleX = True,
+    #     customTitle = "Logical Error Rate by Physical Error Rate",
+    #     customXLabel = "Physical Error Rate",
+    #     customYLabel = "Logical Error Rate",
+    #     avoidZero=True
     # )
     Plotter.plot(
         testFrame,
         fixedSubjects = { 
             "decoder": [config.UF_ARCH_DECODER], 
             "noiseModel": [config.SI1000_NOISE_MODEL],
-            "distance": [27]
+            "distance": [17]
         },
         variableFactor = "early_stopping_peeling",
         variableSubject = "code",
         responseVariable = ERROR_RATE_HEADER,
         secondaryVariableFactor = "base_error_rate",
-        logScale = True
+        logScaleY = True,
+        customTitle = "Logical Error Rate by E_P (d=17)",
+        customXLabel = "E_P",
+        customYLabel = "Logical Error Rate",
     )
     plt.show()
