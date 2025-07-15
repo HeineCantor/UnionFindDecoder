@@ -150,18 +150,18 @@ def single_factor_plot(distance, factor, steps=None):
     splot = plt.subplot(1, 2, 1)
     plt.plot(factor_range, cp_area, marker='o', color='blue')
     plt.title(f'CP Area vs {factor} (d={distance})')
-    plt.xlabel(factor)
+    plt.xlabel(factor, fontsize=14)
     plt.ylabel('Area')
     plt.grid()
-    splot.figure.set_dpi(180)
+    splot.figure.set_dpi(280)
 
     splot = plt.subplot(1, 2, 2)
     plt.plot(factor_range, cp_time, marker='o', color='orange')
     plt.title(f'CP Time vs {factor} (d={distance})')
-    plt.xlabel(factor)
+    plt.xlabel(factor, fontsize=14)
     plt.ylabel('Time')
     plt.grid()
-    splot.figure.set_dpi(180)
+    splot.figure.set_dpi(280)
 
 if __name__ == "__main__":
     distance = 21
