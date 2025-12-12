@@ -62,7 +62,16 @@ class UFArchDecoder(sinter.Decoder):
         detCoords = stim.DetectorErrorModel.from_file(dem_path).get_detector_coordinates()
         distance, rounds = getCodeParams(detCoords, self.params.codeType)
 
-        ufDecoder = uf.UnionFindDecoder(distance, distance+1, uf.CodeType.ROTATED, 1, 1, self.params.early_stopping_param, self.params.early_stopping_peeling_param)
+        ufDecoder = uf.UnionFindDecoder(
+            distance, distance+1, 
+            uf.CodeType.ROTATED, 
+            self.params.I_param, 
+            self.params.G_param, 
+            self.params.C_param, 
+            self.params.P_param, 
+            self.params.early_stopping_param, 
+            self.params.early_stopping_peeling_param
+        )
 
         packed_detection_event_data = np.fromfile(dets_b8_in_path, dtype=np.uint8)
         packed_detection_event_data.shape = (num_shots, math.ceil(num_dets / 8))

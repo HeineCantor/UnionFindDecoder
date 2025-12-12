@@ -1,9 +1,20 @@
 #include "union_find.hpp"
 
-UnionFindDecoder::UnionFindDecoder(unsigned int distance, unsigned int rounds, CodeType codeType, int initParallelParam, int growParallelParam, int earlyStoppingParam, int earlyPeelingParam)
+UnionFindDecoder::UnionFindDecoder(
+    unsigned int distance, 
+    unsigned int rounds, 
+    CodeType codeType, 
+    int initParallelParam, 
+    int growParallelParam, 
+    int clusterParallelParam,
+    int peelingParallelParam,
+    int earlyStoppingParam, 
+    int earlyPeelingParam)
 {
     this->initParallelParam = initParallelParam;
     this->growParallelParam = growParallelParam;
+    this->clusterParallelParam = clusterParallelParam;
+    this->peelingParallelParam = peelingParallelParam;
     this->earlyStoppingParam = earlyStoppingParam;
     this->earlyPeelingParam = earlyPeelingParam;
 

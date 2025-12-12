@@ -25,7 +25,7 @@ PYBIND11_MODULE(uf_arch, m)
 
     py::class_<UnionFindDecoder>(m, "UnionFindDecoder")
         .def(py::init<unsigned int, unsigned int, CodeType>())
-        .def(py::init<unsigned int, unsigned int, CodeType, int, int, int, int>())
+        .def(py::init<unsigned int, unsigned int, CodeType, int, int, int, int, int, int>())
         .def("decode", &UnionFindDecoder::decode)
         .def("initCluster", &UnionFindDecoder::initCluster)
         .def("grow", &UnionFindDecoder::grow)
