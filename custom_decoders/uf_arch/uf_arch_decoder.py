@@ -6,12 +6,47 @@ import math
 
 import uf_arch.uf_arch as uf
 
+from dataclasses import dataclass
+
+@dataclass
+class UFArchParams:
+    codeType: str
+    early_stopping_param: int = -1
+    early_stopping_peeling_param: int = -1
+
+    I_param: int = 1
+    G_param: int = 1
+    C_param: int = 1
+    P_param: int = 1
+
+    @classmethod
+    def from_dict(cls, params_dict):
+        return cls(
+            codeType=params_dict.get("codeType", "rotated"),
+            early_stopping_param=params_dict.get("early_stopping_param", -1),
+            early_stopping_peeling_param=params_dict.get("early_stopping_peeling_param", -1),
+            I_param=params_dict.get("I_param", 1),
+            G_param=params_dict.get("G_param", 1),
+            C_param=params_dict.get("C_param", 1),
+            P_param=params_dict.get("P_param", 1),
+        )
+    
+    def validate(self):
+        if self.I_param <= 0 or self.G_param <= 0 or self.C_param <= 0 or self.P_param <= 0:
+            raise ValueError("I_param, G_param, C_param, and P_param must be positive integers.")
+
 class UFArchDecoder(sinter.Decoder):
-    def __init__(self, codeType: str, early_stopping_param: int = -1, early_stopping_peeling_param: int = -1):
+    def __init__(self, params: UFArchParams | None = None, **overrides):
         super().__init__()
-        self.codeType = codeType
-        self.early_stopping_param = early_stopping_param
-        self.early_stopping_peeling_param = early_stopping_peeling_param
+        if params is None:
+            params = UFArchParams.from_dict(overrides)
+        else:
+            for key, value in overrides.items():
+                if hasattr(params, key):
+                    setattr(params, key, value)
+
+        params.validate()
+        self.params = params
 
     def decode_via_files(self,
                          *,
@@ -25,9 +60,9 @@ class UFArchDecoder(sinter.Decoder):
                        ) -> None:
         
         detCoords = stim.DetectorErrorModel.from_file(dem_path).get_detector_coordinates()
-        distance, rounds = getCodeParams(detCoords, self.codeType)
+        distance, rounds = getCodeParams(detCoords, self.params.codeType)
 
-        ufDecoder = uf.UnionFindDecoder(distance, distance+1, uf.CodeType.ROTATED, 1, 1, self.early_stopping_param, self.early_stopping_peeling_param)
+        ufDecoder = uf.UnionFindDecoder(distance, distance+1, uf.CodeType.ROTATED, 1, 1, self.params.early_stopping_param, self.params.early_stopping_peeling_param)
 
         packed_detection_event_data = np.fromfile(dets_b8_in_path, dtype=np.uint8)
         packed_detection_event_data.shape = (num_shots, math.ceil(num_dets / 8))

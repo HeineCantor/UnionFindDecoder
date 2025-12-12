@@ -4,7 +4,7 @@ import pandas as pd
 
 from experimental_setup import config
 from custom_decoders.unionfind.union_find_decoder import UnionFindDecoder
-from custom_decoders.uf_arch.uf_arch_decoder import UFArchDecoder
+from custom_decoders.uf_arch.uf_arch_decoder import UFArchDecoder, UFArchParams
 from error_models import ErrorModel, SuperconductiveEM, WillowEM
 
 noiseModelDict = {
@@ -48,12 +48,16 @@ class Experimenter():
             early_stopping_peeling_param = kwargs["early_stopping_peeling_param"]
             if early_stopping_peeling_param is None:
                 early_stopping_peeling_param = -1
+
+        params = UFArchParams(codeType=codeType)
+        params.early_stopping_param = early_stopping_param
+        params.early_stopping_peeling_param = early_stopping_peeling_param
         
         for shots in shotsList:
             for rounds in roundsList:
                 customDecodersDict = {
                     config.UNION_FIND_DECODER: UnionFindDecoder(codeType), 
-                    config.UF_ARCH_DECODER: UFArchDecoder(codeType, early_stopping_param=early_stopping_param, early_stopping_peeling_param=early_stopping_peeling_param)
+                    config.UF_ARCH_DECODER: UFArchDecoder(params=params)
                 }
 
                 rounds = int(rounds)
